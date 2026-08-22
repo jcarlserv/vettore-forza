@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prestação de Contas — Contrato de Gestão</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="css/estilos.css">
+</head>
+<body>
+
+<!-- ===================== LOGIN ===================== -->
+<div id="tela-login">
+  <div class="cartao-login">
+    <div class="selo">PC</div>
+    <h1>Prestação de Contas</h1>
+    <p class="sub">Contrato de gestão em saúde</p>
+
+    <div id="aviso-login" class="aviso erro" hidden></div>
+
+    <form id="form-login">
+      <div class="campo">
+        <label for="login-email">Email</label>
+        <input type="email" id="login-email" autocomplete="username" required>
+      </div>
+      <div class="campo">
+        <label for="login-senha">Senha</label>
+        <input type="password" id="login-senha" autocomplete="current-password" required>
+      </div>
+      <button type="submit" class="botao largo" id="botao-entrar">Entrar</button>
+    </form>
+
+    <p style="text-align:center;margin:16px 0 0;font-size:13px">
+      <a href="#" id="link-recuperar" style="color:var(--tinta-70)">Esqueci minha senha</a>
+    </p>
+  </div>
+</div>
+
+<!-- ===================== APLICAÇÃO ===================== -->
+<div id="tela-app" hidden>
+
+  <header class="topo">
+    <img id="logo-topo" class="logo" alt="" hidden>
+    <span class="marca-nome" id="marca-nome">Prestação de Contas</span>
+    <div class="espaco"></div>
+    <div class="usuario-chip">
+      <span class="nome" id="nome-usuario"></span>
+      <span class="papel-tag" id="papel-usuario"></span>
+      <button class="botao neutro" id="botao-sair"
+              style="color:#fff;border-color:rgba(255,255,255,.25);padding:5px 11px">Sair</button>
+    </div>
+  </header>
+
+  <nav class="abas" role="tablist">
+    <button class="aba" data-aba="inicio"        role="tab" aria-selected="true">Início</button>
+    <button class="aba" data-aba="prestacoes"    role="tab" aria-selected="false" data-permissao="prestacao.ver">Prestações</button>
+    <button class="aba" data-aba="fornecedores"  role="tab" aria-selected="false" data-permissao="prestacao.ver">Fornecedores</button>
+    <button class="aba" data-aba="cadastros"     role="tab" aria-selected="false" data-permissao="cadastro.ver">Cadastros</button>
+    <button class="aba" data-aba="configuracoes" role="tab" aria-selected="false" data-permissao="config.acessar">Configurações</button>
+  </nav>
+
+  <main>
+
+    <!-- ---------- Início ---------- -->
+    <section class="secao" data-aba="inicio">
+      <div class="cabecalho-secao">
+        <span class="eyebrow">Sessão</span>
+        <h2>Bem-vindo</h2>
+        <p>O sistema está sendo construído por etapas. Esta é a fundação: acesso, papéis e parametrizações.</p>
+      </div>
+
+      <div class="grade-2">
+        <div class="painel">
+          <header><h3>Seu papel</h3></header>
+          <div class="conteudo">
+            <p class="titulo mono" style="font-size:24px" id="resumo-papel">—</p>
+            <p class="rodape-nota">Define o que você enxerga por padrão. Exceções individuais são possíveis.</p>
+          </div>
+        </div>
+        <div class="painel">
+          <header><h3>Parametrizações liberadas</h3></header>
+          <div class="conteudo">
+            <p class="titulo mono" style="font-size:24px" id="resumo-permissoes">—</p>
+            <p class="rodape-nota">Cada parametrização nova do sistema entra automaticamente nesta conta.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ---------- Placeholders das próximas etapas ---------- -->
+    <section class="secao" data-aba="prestacoes" hidden>
+      <div class="cabecalho-secao">
+        <span class="eyebrow">Etapa 5</span>
+        <h2>Prestações</h2>
+      </div>
+      <div class="painel"><div class="vazio">Este módulo entra depois da Edge Function do Google Drive.</div></div>
+    </section>
+
+    <section class="secao" data-aba="fornecedores" hidden>
+      <div class="cabecalho-secao">
+        <span class="eyebrow">Etapa 4</span>
+        <h2>Fornecedores</h2>
+      </div>
+      <div class="painel"><div class="vazio">Notas fiscais, pagamentos e repositório de CNDs entram aqui.</div></div>
+    </section>
+
+    <section class="secao" data-aba="cadastros" hidden>
+      <div class="cabecalho-secao">
+        <span class="eyebrow">Etapa 3</span>
+        <h2>Cadastros</h2>
+      </div>
+      <div class="painel"><div class="vazio">Municípios, unidades de saúde e contratos de gestão.</div></div>
+    </section>
+
+    <!-- ---------- Configurações ---------- -->
+    <section class="secao" data-aba="configuracoes" hidden>
+      <div class="cabecalho-secao">
+        <span class="eyebrow">Administração</span>
+        <h2>Configurações</h2>
+        <p>Dados da organização, aparência do sistema e quem pode fazer o quê.</p>
+      </div>
+
+      <div class="sub-abas" role="tablist">
+        <button class="sub-aba" data-sub="organizacao" role="tab" aria-selected="true">Organização</button>
+        <button class="sub-aba" data-sub="visual"      role="tab" aria-selected="false" data-permissao="config.visual.editar">Identidade visual</button>
+        <button class="sub-aba" data-sub="usuarios"    role="tab" aria-selected="false" data-permissao="config.usuarios.ver">Usuários</button>
+        <button class="sub-aba" data-sub="permissoes"  role="tab" aria-selected="false" data-permissao="config.permissoes.editar">Permissões</button>
+      </div>
+
+      <!-- Organização -->
+      <div class="painel painel-config" data-sub="organizacao">
+        <header><h3>Dados da organização</h3></header>
+        <div class="conteudo">
+          <div id="aviso-org" class="aviso" hidden></div>
+          <form id="form-org">
+            <div class="grade-2">
+              <div class="campo">
+                <label for="org-razao">Razão social</label>
+                <input type="text" id="org-razao" required>
+              </div>
+              <div class="campo">
+                <label for="org-cnpj">CNPJ</label>
+                <input type="text" id="org-cnpj" class="mono" placeholder="00.000.000/0001-00">
+              </div>
+              <div class="campo">
+                <label for="org-email">Email de suporte</label>
+                <input type="email" id="org-email">
+              </div>
+              <div class="campo">
+                <label for="org-telefone">Telefone</label>
+                <input type="text" id="org-telefone" class="mono">
+              </div>
+            </div>
+            <button type="submit" class="botao" data-permissao="config.organizacao.editar">Salvar alterações</button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Identidade visual -->
+      <div class="painel painel-config" data-sub="visual" hidden>
+        <header><h3>Identidade visual</h3></header>
+        <div class="conteudo">
+          <div id="aviso-visual" class="aviso" hidden></div>
+
+          <div class="campo">
+            <label for="arquivo-logo">Logo</label>
+            <input type="file" id="arquivo-logo" accept="image/png,image/jpeg,image/svg+xml">
+            <p class="rodape-nota">PNG, JPG ou SVG, até 300 KB. O sistema sugere uma cor a partir da imagem.</p>
+          </div>
+
+          <div style="margin:12px 0">
+            <img id="previa-logo" alt="Logo enviada" hidden
+                 style="max-height:52px;background:var(--papel);padding:8px;border:1px solid var(--linha);border-radius:var(--r)">
+          </div>
+
+          <div class="campo">
+            <label>Cor da marca</label>
+            <div class="paleta" id="paleta-cores"></div>
+            <div style="margin-top:10px;display:flex;align-items:center;gap:8px">
+              <input type="color" id="cor-livre" style="width:44px;height:34px;padding:2px">
+              <span class="rodape-nota" style="margin:0">Ou escolha uma cor livre. A prévia é imediata.</span>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:16px">
+            <button class="botao" id="salvar-visual">Salvar aparência</button>
+            <button class="botao neutro" id="remover-logo">Remover logo</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Usuários -->
+      <div class="painel painel-config" data-sub="usuarios" hidden>
+        <header>
+          <h3>Usuários</h3>
+          <div class="espaco"></div>
+        </header>
+        <div class="conteudo">
+          <table class="lista">
+            <thead>
+              <tr>
+                <th>Pessoa</th><th>Papel</th><th>Situação</th><th>Último acesso</th><th></th>
+              </tr>
+            </thead>
+            <tbody id="corpo-usuarios"></tbody>
+          </table>
+          <p class="rodape-nota">
+            Novos acessos são criados em Authentication no painel do Supabase e ganham perfil aqui.
+            O cadastro direto pela tela entra junto com a Edge Function, que é quem pode criar login com segurança.
+          </p>
+        </div>
+      </div>
+
+      <!-- Permissões -->
+      <div class="painel painel-config" data-sub="permissoes" hidden>
+        <header>
+          <h3 id="titulo-matriz">Padrão por papel</h3>
+          <div class="espaco"></div>
+          <button class="botao neutro" id="voltar-padroes" hidden>Voltar ao padrão por papel</button>
+        </header>
+        <div class="conteudo">
+          <p class="rodape-nota" id="legenda-matriz" style="margin:0 0 14px">
+            O que cada papel pode fazer, valendo para todo mundo com aquele papel.
+            As exceções de uma pessoa ficam na lista de Usuários.
+          </p>
+          <div id="area-matriz"></div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <div style="text-align:center;padding:20px;color:var(--tinta-40);font-size:12px" class="mono">
+    <span id="rodape-versao"></span>
+  </div>
+</div>
+
+<!-- ===================== MODAL DE USUÁRIO ===================== -->
+<div class="fundo-modal" id="modal-usuario" hidden>
+  <div class="modal">
+    <header><h3 class="titulo">Editar usuário</h3></header>
+    <div class="corpo">
+      <div class="campo">
+        <label for="edit-nome">Nome</label>
+        <input type="text" id="edit-nome">
+      </div>
+      <div class="campo">
+        <label for="edit-email">Email</label>
+        <input type="email" id="edit-email" disabled>
+        <p class="rodape-nota">O email é a chave do login e só muda pelo painel de autenticação.</p>
+      </div>
+      <div class="campo">
+        <label for="edit-papel">Papel</label>
+        <select id="edit-papel"></select>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px">
+        <input type="checkbox" id="edit-ativo"> Acesso ativo
+      </label>
+    </div>
+    <footer>
+      <button class="botao neutro" id="fechar-usuario">Cancelar</button>
+      <button class="botao" id="salvar-usuario">Salvar</button>
+    </footer>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/autenticacao.js"></script>
+<script src="js/configuracoes.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
