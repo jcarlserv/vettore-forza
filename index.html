@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Prestação de Contas — Contrato de Gestão</title>
+<title>Vettore — Prestação de Contas</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,8 +16,20 @@
 <!-- ===================== LOGIN ===================== -->
 <div id="tela-login">
   <div class="cartao-login">
-    <div class="selo">PC</div>
-    <h1>Prestação de Contas</h1>
+    <div class="selo" aria-hidden="true">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none"
+           stroke="currentColor" stroke-width="2.2"
+           stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 5 L12 19 L20 5"></path>
+      </svg>
+    </div>
+
+    <h1 class="marca-titulo">Vettore</h1>
+    <p class="marca-linha">Tecnologia para Organizações Sociais de Saúde</p>
+
+    <div class="divisor"></div>
+
+    <p class="modulo-nome">Prestação de Contas</p>
     <p class="sub">Contrato de gestão em saúde</p>
 
     <div id="aviso-login" class="aviso erro" hidden></div>
@@ -45,9 +57,16 @@
 
   <header class="topo">
     <img id="logo-topo" class="logo" alt="" hidden>
-    <span class="marca-nome" id="marca-nome">Prestação de Contas</span>
+    <svg id="marca-simbolo" class="simbolo-topo" viewBox="0 0 24 24" width="17" height="17"
+         fill="none" stroke="currentColor" stroke-width="2.4"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M4 5 L12 19 L20 5"></path>
+    </svg>
+    <span class="marca-nome" id="marca-nome">Vettore</span>
+    <span class="modulo-topo">Prestação de Contas</span>
     <div class="espaco"></div>
     <div class="usuario-chip">
+      <span class="nome-osc" id="nome-osc"></span>
       <span class="nome" id="nome-usuario"></span>
       <span class="papel-tag" id="papel-usuario"></span>
       <button class="botao neutro" id="botao-sair"

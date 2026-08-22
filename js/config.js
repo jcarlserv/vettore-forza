@@ -7,6 +7,9 @@
    ============================================================= */
 
 const CONFIG = {
+  PRODUTO: 'Vettore',
+  ASSINATURA: 'Tecnologia para Organizações Sociais de Saúde',
+  MODULO: 'Prestação de Contas',
   SUPABASE_URL:  'https://SEU-PROJETO.supabase.co',
   SUPABASE_ANON: 'COLE-AQUI-A-CHAVE-ANON',
   VERSAO: 'v0.1.0'

@@ -103,8 +103,32 @@ button, input, select, textarea { font: inherit; color: inherit; }
   margin-bottom: 20px;
 }
 
-.cartao-login h1 { font-size: 22px; margin-bottom: 4px; }
-.cartao-login p.sub { color: var(--tinta-70); font-size: 14px; margin: 0 0 24px; }
+.marca-titulo {
+  font-size: 30px;
+  letter-spacing: -.02em;
+  margin-bottom: 3px;
+}
+.marca-linha {
+  font-size: 12.5px;
+  color: var(--tinta-70);
+  margin: 0;
+  max-width: 26ch;
+  line-height: 1.35;
+}
+
+.divisor {
+  height: 1px;
+  background: var(--linha);
+  margin: 22px 0 18px;
+}
+
+.modulo-nome {
+  font-family: "IBM Plex Sans Condensed", sans-serif;
+  font-weight: 600;
+  font-size: 17px;
+  margin: 0 0 2px;
+}
+.cartao-login p.sub { color: var(--tinta-70); font-size: 13px; margin: 0 0 22px; }
 
 /* ---------- Formulários ---------- */
 
@@ -191,7 +215,30 @@ input:focus, select:focus, textarea:focus {
   font-size: 16px;
   white-space: nowrap;
 }
-.topo img.logo { height: 26px; width: auto; }
+.topo img.logo {
+  height: 24px;
+  width: auto;
+  padding-right: 12px;
+  border-right: 1px solid rgba(255,255,255,.18);
+}
+.simbolo-topo { color: #fff; flex-shrink: 0; }
+
+.modulo-topo {
+  font-size: 13px;
+  color: rgba(255,255,255,.62);
+  padding-left: 12px;
+  border-left: 1px solid rgba(255,255,255,.18);
+  white-space: nowrap;
+}
+
+.nome-osc {
+  font-size: 13px;
+  color: rgba(255,255,255,.62);
+  max-width: 22ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .topo .espaco { flex: 1; }
 
 .usuario-chip {
@@ -464,7 +511,9 @@ input[type=checkbox] {
   .grade-2 { grid-template-columns: 1fr; }
   main { padding: 18px 14px 60px; }
   .topo { padding: 0 14px; gap: 10px; }
-  .usuario-chip .nome { display: none; }
+  .usuario-chip .nome,
+  .nome-osc,
+  .modulo-topo { display: none; }
   table.matriz thead th { width: 62px; font-size: 9px; }
   table.matriz thead th:first-child { min-width: 200px; }
 }

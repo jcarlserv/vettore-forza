@@ -22,7 +22,8 @@ function montarInicio() {
 }
 
 async function iniciar() {
-  document.getElementById('rodape-versao').textContent = CONFIG.VERSAO;
+  document.getElementById('rodape-versao').textContent =
+    CONFIG.PRODUTO + ' · ' + CONFIG.MODULO + ' · ' + CONFIG.VERSAO;
 
   // Catálogo de papéis é usado em vários lugares; carrega uma vez.
   const { data } = await sb.from('papel').select('*').eq('ativo', true).order('nivel');

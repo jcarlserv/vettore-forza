@@ -54,7 +54,7 @@ async function salvarOrganizacao(evento) {
   if (error) return mostrarAviso(aviso, 'Não foi possível salvar: ' + error.message);
   mostrarAviso(aviso, 'Dados da organização salvos.', 'ok');
   registrarAuditoria('organizacao', Sessao.organizacao.id, 'ALTERAR');
-  document.getElementById('marca-nome').textContent =
+  document.getElementById('nome-osc').textContent =
     document.getElementById('org-razao').value.trim();
 }
 
@@ -67,11 +67,14 @@ async function carregarIdentidadeVisual() {
   aplicarIdentidade(data.cor_marca, data.logo_data_url, data.razao_social);
 }
 
+// Vettore é o nome do produto e não muda. A logo e a cor configuradas
+// aqui são da OSC que usa o sistema — entram como identidade do cliente,
+// ao lado da marca, não no lugar dela.
 function aplicarIdentidade(cor, logo, nome) {
   if (cor) document.documentElement.style.setProperty('--marca', cor);
   const img = document.getElementById('logo-topo');
   if (logo) { img.src = logo; img.hidden = false; } else { img.hidden = true; }
-  if (nome) document.getElementById('marca-nome').textContent = nome;
+  if (nome) document.getElementById('nome-osc').textContent = nome;
 }
 
 function carregarFormularioVisual() {
