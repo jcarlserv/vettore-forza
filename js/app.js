@@ -63,6 +63,10 @@ async function iniciar() {
   document.getElementById('salvar-municipio').addEventListener('click', salvarMunicipio);
   ligarCampoLogo('arquivo-logo-mun', 'previa-logo-mun', 'aviso-municipio', 'remover-logo-mun');
   aplicarMascara(document.getElementById('mun-cnpj'), mascaraCnpj);
+  document.getElementById('mun-uf').addEventListener('change', e => {
+    if (e.target.value) carregarListaMunicipios(e.target.value, null);
+  });
+  document.getElementById('mun-nome').addEventListener('change', preencherCodigoIbge);
 
   // Unidades
   document.getElementById('nova-unidade').addEventListener('click', () => abrirUnidade(null));

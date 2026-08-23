@@ -251,15 +251,71 @@ function abrirMunicipio(id) {
   document.getElementById('titulo-municipio').textContent =
     id ? 'Editar município' : 'Novo município';
 
-  ['nome','uf','codigo-ibge','cnpj','prefeito','secretaria-saude','email','telefone']
-    .forEach(c => {
-      const el = document.getElementById('mun-' + c);
-      if (el) el.value = m[c.replace(/-/g, '_')] || '';
-    });
+  const selUf = document.getElementById('mun-uf');
+  selUf.innerHTML = '<option value="">Selecione o estado</option>' +
+    UFS.map(([sigla, nome]) =>
+      `<option value="${sigla}" ${sigla === m.uf ? 'selected' : ''}>${nome} (${sigla})</option>`
+    ).join('');
+
+  ['codigo-ibge','cnpj','prefeito','secretaria-saude','email','telefone'].forEach(c => {
+    const el = document.getElementById('mun-' + c);
+    if (el) el.value = m[c.replace(/-/g, '_')] || '';
+  });
+
+  const selNome = document.getElementById('mun-nome');
+  if (m.uf) carregarListaMunicipios(m.uf, m.nome);
+  else {
+    selNome.innerHTML = '<option value="">Escolha o estado primeiro</option>';
+    selNome.disabled = true;
+  }
 
   mostrarLogoExistente('previa-logo-mun', m.logo_data_url);
   limparAviso(document.getElementById('aviso-municipio'));
   document.getElementById('modal-municipio').hidden = false;
+}
+
+// Municípios já cadastrados aparecem na lista, mas desabilitados —
+// mostrar que existem evita a pessoa procurar achando que faltou
+// carregar, e impede o cadastro em duplicidade na origem.
+async function carregarListaMunicipios(uf, selecionado) {
+  const sel = document.getElementById('mun-nome');
+  const aviso = document.getElementById('aviso-municipio');
+
+  sel.disabled = true;
+  sel.innerHTML = '<option value="">Carregando…</option>';
+
+  try {
+    const lista = await municipiosDaUf(uf);
+
+    const jaUsados = new Set(
+      listaMunicipios
+        .filter(x => x.uf === uf && x.id !== editandoMunicipio?.id)
+        .map(x => x.nome.toLowerCase())
+    );
+
+    sel.innerHTML = '<option value="">Selecione o município</option>' +
+      lista.map(mun => {
+        const usado = jaUsados.has(mun.nome.toLowerCase());
+        return `<option value="${escapar(mun.nome)}" data-ibge="${mun.codigo}"
+                  ${usado ? 'disabled' : ''}
+                  ${mun.nome === selecionado ? 'selected' : ''}>
+                  ${escapar(mun.nome)}${usado ? ' — já cadastrado' : ''}</option>`;
+      }).join('');
+
+    sel.disabled = false;
+    preencherCodigoIbge();
+
+  } catch (e) {
+    sel.innerHTML = '<option value="">Falha ao carregar</option>';
+    mostrarAviso(aviso, e.message);
+  }
+}
+
+function preencherCodigoIbge() {
+  const sel = document.getElementById('mun-nome');
+  const op = sel.selectedOptions[0];
+  const campo = document.getElementById('mun-codigo-ibge');
+  if (op && op.dataset.ibge) campo.value = op.dataset.ibge;
 }
 
 async function salvarMunicipio() {
@@ -267,8 +323,16 @@ async function salvarMunicipio() {
   const nome = document.getElementById('mun-nome').value.trim();
   const uf   = document.getElementById('mun-uf').value.trim().toUpperCase();
 
-  if (!nome || uf.length !== 2)
-    return mostrarAviso(aviso, 'Nome e UF são obrigatórios. A UF tem duas letras.');
+  if (!uf)   return mostrarAviso(aviso, 'Escolha o estado.');
+  if (!nome) return mostrarAviso(aviso, 'Escolha o município.');
+
+  const repetido = listaMunicipios.some(x =>
+    x.uf === uf &&
+    x.nome.toLowerCase() === nome.toLowerCase() &&
+    x.id !== editandoMunicipio?.id);
+
+  if (repetido)
+    return mostrarAviso(aviso, `${nome}/${uf} já está cadastrado.`);
 
   const dados = {
     nome, uf,

@@ -188,3 +188,37 @@ const ICONES = {
   mais: `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor"
            stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>`
 };
+
+
+/* -------------------------------------------------------------
+   Estados e municípios (IBGE)
+   ------------------------------------------------------------- */
+
+const UFS = [
+  ['AC','Acre'],['AL','Alagoas'],['AP','Amapá'],['AM','Amazonas'],
+  ['BA','Bahia'],['CE','Ceará'],['DF','Distrito Federal'],['ES','Espírito Santo'],
+  ['GO','Goiás'],['MA','Maranhão'],['MT','Mato Grosso'],['MS','Mato Grosso do Sul'],
+  ['MG','Minas Gerais'],['PA','Pará'],['PB','Paraíba'],['PR','Paraná'],
+  ['PE','Pernambuco'],['PI','Piauí'],['RJ','Rio de Janeiro'],['RN','Rio Grande do Norte'],
+  ['RS','Rio Grande do Sul'],['RO','Rondônia'],['RR','Roraima'],['SC','Santa Catarina'],
+  ['SP','São Paulo'],['SE','Sergipe'],['TO','Tocantins']
+];
+
+// A lista de municípios de uma UF não muda; buscar uma vez por
+// sessão basta.
+const _cacheMunicipios = {};
+
+async function municipiosDaUf(uf) {
+  if (_cacheMunicipios[uf]) return _cacheMunicipios[uf];
+
+  const r = await fetch(
+    `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`);
+  if (!r.ok) throw new Error('Não foi possível carregar os municípios de ' + uf + '.');
+
+  const lista = (await r.json())
+    .map(m => ({ codigo: String(m.id), nome: m.nome }))
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
+  _cacheMunicipios[uf] = lista;
+  return lista;
+}
