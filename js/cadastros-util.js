@@ -44,7 +44,9 @@ async function consultarCep(cep) {
     return {
       cidade: d.city || '',
       uf: (d.state || '').toUpperCase(),
-      codigo_ibge: String(d.city_ibge || '')   // vem pronto, sem lista
+      // A BrasilAPI não devolve código IBGE no CEP; fica em branco
+      // e o código é resolvido pela lista de municípios da UF.
+      codigo_ibge: String(d.city_ibge || d.ibge || '')
     };
   } catch (e) {
     console.warn('[Vettore] Falha ao consultar CEP:', e.message);
@@ -327,14 +329,47 @@ const _cacheMunicipios = {};
 async function municipiosDaUf(uf) {
   if (_cacheMunicipios[uf]) return _cacheMunicipios[uf];
 
-  const r = await fetch(
-    `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`);
-  if (!r.ok) throw new Error('Não foi possível carregar os municípios de ' + uf + '.');
+  // Duas fontes para o mesmo dado. A BrasilAPI vem primeiro porque
+  // o servidor do IBGE recusa a chamada em parte das redes — foi o
+  // que derrubou o preenchimento do código IBGE aqui.
+  const fontes = [
+    {
+      nome: 'BrasilAPI',
+      url: `https://brasilapi.com.br/api/ibge/municipios/v1/${uf}?providers=gov`,
+      mapear: d => d.map(m => ({
+        codigo: String(m.codigo_ibge || ''),
+        nome: m.nome
+      }))
+    },
+    {
+      nome: 'IBGE',
+      url: `https://servicodados.ibge.gov.br/api/v1/localidades/estados/${uf}/municipios`,
+      mapear: d => d.map(m => ({ codigo: String(m.id), nome: m.nome }))
+    }
+  ];
 
-  const lista = (await r.json())
-    .map(m => ({ codigo: String(m.id), nome: m.nome }))
-    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  let ultimoErro;
+  for (const fonte of fontes) {
+    try {
+      const r = await fetch(fonte.url);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
 
-  _cacheMunicipios[uf] = lista;
-  return lista;
+      const lista = fonte.mapear(await r.json())
+        .filter(m => m.nome)
+        .sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
+      if (!lista.length) throw new Error('lista vazia');
+
+      console.log(`[Vettore] Municípios de ${uf} via ${fonte.nome}: ${lista.length}`);
+      _cacheMunicipios[uf] = lista;
+      return lista;
+
+    } catch (e) {
+      ultimoErro = e;
+      console.warn(`[Vettore] ${fonte.nome} falhou para ${uf}:`, e.message);
+    }
+  }
+
+  throw new Error('Não foi possível carregar os municípios de ' + uf +
+                  ' (' + (ultimoErro?.message || 'erro desconhecido') + ').');
 }

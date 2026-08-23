@@ -300,17 +300,27 @@ async function buscarCnpjMunicipio() {
     if (d.cidade) {
       // A Receita devolve em caixa alta; a grafia do IBGE é a que
       // vai impressa nas capas, então prefiro a dela quando bate.
+      // A grafia oficial (com acento) e o código IBGE saem da mesma
+      // consulta — uma chamada resolve os dois campos.
       let nome = d.cidade;
+      let codigo = d.codigo_ibge;
+
       try {
         const achado = (await municipiosDaUf(d.uf))
           .find(mun => normalizar(mun.nome) === normalizar(d.cidade));
-        if (achado) nome = achado.nome;
-      } catch { /* mantém o nome da Receita */ }
+        if (achado) {
+          nome = achado.nome;
+          codigo = codigo || achado.codigo;
+        } else {
+          console.warn('[Vettore] Município fora da lista da UF:', d.cidade, d.uf);
+        }
+      } catch (e) {
+        mostrarAviso(aviso,
+          'Endereço preenchido, mas o código IBGE não pôde ser buscado: ' + e.message);
+      }
 
       document.getElementById('mun-nome').value = nome;
-
-      if (d.codigo_ibge) document.getElementById('mun-codigo-ibge').value = d.codigo_ibge;
-      else await preencherCodigoIbge();
+      if (codigo) document.getElementById('mun-codigo-ibge').value = codigo;
 
       const repetido = listaMunicipios.some(x =>
         x.uf === d.uf && normalizar(x.nome) === normalizar(nome) &&
