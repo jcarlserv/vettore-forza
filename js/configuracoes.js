@@ -251,65 +251,60 @@ function abrirMunicipio(id) {
   document.getElementById('titulo-municipio').textContent =
     id ? 'Editar município' : 'Novo município';
 
-  const selUf = document.getElementById('mun-uf');
-  selUf.innerHTML = '<option value="">Selecione o estado</option>' +
-    UFS.map(([sigla, nome]) =>
-      `<option value="${sigla}" ${sigla === m.uf ? 'selected' : ''}>${nome} (${sigla})</option>`
-    ).join('');
+  document.getElementById('lista-ufs').innerHTML =
+    UFS.map(([sigla, nome]) => `<option value="${sigla}">${nome}</option>`).join('');
 
-  ['codigo-ibge','cnpj','razao-social','prefeito','secretaria-saude','email','telefone',
+  ['uf','nome','codigo-ibge','cnpj','prefeito','secretaria-saude','email','telefone',
+   'razao-social','nome-fantasia','natureza-juridica','data-abertura','situacao',
    'cep','logradouro','numero','complemento','bairro'].forEach(c => {
     const el = document.getElementById('mun-' + c);
     if (el) el.value = m[c.replace(/-/g, '_')] || '';
   });
 
-  const selNome = document.getElementById('mun-nome');
-  if (m.uf) carregarListaMunicipios(m.uf, m.nome);
-  else {
-    selNome.innerHTML = '<option value="">Escolha o estado primeiro</option>';
-    selNome.disabled = true;
-  }
+  if (m.uf) sugerirMunicipios(m.uf);
+  else document.getElementById('lista-municipios').innerHTML = '';
 
   mostrarLogoExistente('previa-logo-mun', m.logo_data_url);
   limparAviso(document.getElementById('aviso-municipio'));
   document.getElementById('modal-municipio').hidden = false;
 }
 
-// Municípios já cadastrados aparecem na lista, mas desabilitados —
-// mostrar que existem evita a pessoa procurar achando que faltou
-// carregar, e impede o cadastro em duplicidade na origem.
-async function carregarListaMunicipios(uf, selecionado) {
-  const sel = document.getElementById('mun-nome');
-  const aviso = document.getElementById('aviso-municipio');
-
-  sel.disabled = true;
-  sel.innerHTML = '<option value="">Carregando…</option>';
+// Campo aberto: a pessoa digita o que quiser. A lista do IBGE entra
+// como sugestão do navegador, não como trava — municípios novos ou
+// grafias fora do padrão continuam aceitos.
+async function sugerirMunicipios(uf) {
+  const lista = document.getElementById('lista-municipios');
+  if (!uf || uf.length !== 2) { lista.innerHTML = ''; return; }
 
   try {
-    const lista = await municipiosDaUf(uf);
-
+    const municipios = await municipiosDaUf(uf.toUpperCase());
     const jaUsados = new Set(
       listaMunicipios
-        .filter(x => x.uf === uf && x.id !== editandoMunicipio?.id)
-        .map(x => x.nome.toLowerCase())
+        .filter(x => x.uf === uf.toUpperCase() && x.id !== editandoMunicipio?.id)
+        .map(x => normalizar(x.nome))
     );
 
-    sel.innerHTML = '<option value="">Selecione o município</option>' +
-      lista.map(mun => {
-        const usado = jaUsados.has(mun.nome.toLowerCase());
-        return `<option value="${escapar(mun.nome)}" data-ibge="${mun.codigo}"
-                  ${usado ? 'disabled' : ''}
-                  ${mun.nome === selecionado ? 'selected' : ''}>
-                  ${escapar(mun.nome)}${usado ? ' — já cadastrado' : ''}</option>`;
-      }).join('');
-
-    sel.disabled = false;
-    preencherCodigoIbge();
-
-  } catch (e) {
-    sel.innerHTML = '<option value="">Falha ao carregar</option>';
-    mostrarAviso(aviso, e.message);
+    lista.innerHTML = municipios
+      .filter(mun => !jaUsados.has(normalizar(mun.nome)))
+      .map(mun => `<option value="${escapar(mun.nome)}" data-ibge="${mun.codigo}"></option>`)
+      .join('');
+  } catch {
+    lista.innerHTML = '';
   }
+}
+
+// Preenche o código IBGE quando o nome digitado bate com a lista.
+async function preencherCodigoIbge() {
+  const uf = document.getElementById('mun-uf').value.trim().toUpperCase();
+  const nome = document.getElementById('mun-nome').value.trim();
+  const campo = document.getElementById('mun-codigo-ibge');
+  if (!uf || !nome || campo.value) return;
+
+  try {
+    const achado = (await municipiosDaUf(uf))
+      .find(mun => normalizar(mun.nome) === normalizar(nome));
+    if (achado) campo.value = achado.codigo;
+  } catch { /* sem código IBGE é aceitável */ }
 }
 
 // A busca do município não usa o ligarBuscaCnpj genérico: aqui os
@@ -329,19 +324,28 @@ async function buscarCnpjMunicipio() {
 
     if (d.uf) {
       document.getElementById('mun-uf').value = d.uf;
-      await carregarListaMunicipios(d.uf, null);
+      await sugerirMunicipios(d.uf);
+    }
 
-      if (d.cidade) {
-        const sel = document.getElementById('mun-nome');
-        const alvo = [...sel.options].find(o =>
-          o.value && normalizar(o.value) === normalizar(d.cidade));
+    if (d.cidade) {
+      // A Receita devolve em caixa alta; a grafia do IBGE é a que
+      // vai impressa nas capas, então prefiro a dela quando bate.
+      let nome = d.cidade;
+      try {
+        const achado = (await municipiosDaUf(d.uf))
+          .find(mun => normalizar(mun.nome) === normalizar(d.cidade));
+        if (achado) nome = achado.nome;
+      } catch { /* mantém o nome da Receita */ }
 
-        if (alvo && alvo.disabled) {
-          mostrarAviso(aviso, `${alvo.value}/${d.uf} já está cadastrado.`);
-        } else if (alvo) {
-          sel.value = alvo.value;
-          preencherCodigoIbge();
-        }
+      document.getElementById('mun-nome').value = nome;
+      await preencherCodigoIbge();
+
+      const repetido = listaMunicipios.some(x =>
+        x.uf === d.uf && normalizar(x.nome) === normalizar(nome) &&
+        x.id !== editandoMunicipio?.id);
+      if (repetido) {
+        mostrarAviso(aviso, `${nome}/${d.uf} já está cadastrado.`);
+        return;
       }
     }
 
@@ -359,7 +363,6 @@ async function buscarCnpjMunicipio() {
     preencherSeVazio('mun-complemento', d.complemento);
     preencherSeVazio('mun-bairro', d.bairro);
 
-    if (!aviso.hidden) return;
     mostrarAviso(aviso, 'Dados preenchidos pela Receita Federal. Confira antes de salvar.', 'ok');
 
   } catch (e) {

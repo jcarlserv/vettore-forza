@@ -329,12 +329,14 @@
 
       <div class="grade-2">
         <div class="campo">
-          <label for="mun-uf">Estado</label>
-          <select id="mun-uf"></select>
+          <label for="mun-uf">Estado (UF)</label>
+          <input type="text" id="mun-uf" class="mono" maxlength="2" list="lista-ufs">
+          <datalist id="lista-ufs"></datalist>
         </div>
         <div class="campo">
           <label for="mun-nome">Município</label>
-          <select id="mun-nome" disabled></select>
+          <input type="text" id="mun-nome" list="lista-municipios">
+          <datalist id="lista-municipios"></datalist>
         </div>
         <div class="campo">
           <label for="mun-codigo-ibge">Código IBGE</label>

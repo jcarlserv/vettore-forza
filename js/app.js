@@ -68,8 +68,9 @@ async function iniciar() {
     cep: 'mun-cep', logradouro: 'mun-logradouro', numero: 'mun-numero',
     complemento: 'mun-complemento', bairro: 'mun-bairro'
   });
-  document.getElementById('mun-uf').addEventListener('change', e => {
-    if (e.target.value) carregarListaMunicipios(e.target.value, null);
+  document.getElementById('mun-uf').addEventListener('input', e => {
+    e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2);
+    if (e.target.value.length === 2) sugerirMunicipios(e.target.value);
   });
   document.getElementById('mun-nome').addEventListener('change', preencherCodigoIbge);
 
