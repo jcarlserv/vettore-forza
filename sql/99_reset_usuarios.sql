@@ -29,7 +29,7 @@ do $$
 declare
   v_email text := 'jcarlservicos@gmail.com';
   v_senha text := 'admin';              -- <<< TROQUE
-  v_nome  text := 'João Carlos';
+  v_nome  text := 'Carlito Junior';
   v_id    uuid;
 begin
 
