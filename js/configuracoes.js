@@ -295,38 +295,45 @@ async function buscarCnpjMunicipio() {
   try {
     const d = await consultarCnpj(document.getElementById('mun-cnpj').value);
 
-    if (d.uf) document.getElementById('mun-uf').value = d.uf;
+    // Município e UF, em ordem de confiabilidade:
+    // 1) o que a API devolveu; 2) a razão social da prefeitura,
+    // que sempre contém o nome ("MUNICIPIO DE IBIAPINA").
+    let uf = d.uf;
+    let nome = d.cidade;
 
-    if (d.cidade) {
-      // A Receita devolve em caixa alta; a grafia do IBGE é a que
-      // vai impressa nas capas, então prefiro a dela quando bate.
-      // A grafia oficial (com acento) e o código IBGE saem da mesma
-      // consulta — uma chamada resolve os dois campos.
-      let nome = d.cidade;
-      let codigo = d.codigo_ibge;
+    if (!nome && d.razao_social) {
+      nome = d.razao_social
+        .replace(/^(munic[ií]pio|prefeitura)\s+(municipal\s+)?(de\s+|do\s+|da\s+|d[oa]s\s+)?/i, '')
+        .trim();
+    }
 
+    if (uf)   document.getElementById('mun-uf').value = uf;
+    if (nome) document.getElementById('mun-nome').value = nome;
+
+    // Grafia oficial e código IBGE saem da mesma consulta.
+    if (uf && nome) {
       try {
-        const achado = (await municipiosDaUf(d.uf))
-          .find(mun => normalizar(mun.nome) === normalizar(d.cidade));
+        const achado = (await municipiosDaUf(uf))
+          .find(mun => normalizar(mun.nome) === normalizar(nome));
+
         if (achado) {
+          document.getElementById('mun-nome').value = achado.nome;
+          document.getElementById('mun-codigo-ibge').value = achado.codigo;
           nome = achado.nome;
-          codigo = codigo || achado.codigo;
         } else {
-          console.warn('[Vettore] Município fora da lista da UF:', d.cidade, d.uf);
+          console.warn('[Vettore] Fora da lista da UF:', nome, uf);
         }
       } catch (e) {
-        mostrarAviso(aviso,
-          'Endereço preenchido, mas o código IBGE não pôde ser buscado: ' + e.message);
+        mostrarAviso(aviso, 'Dados preenchidos, mas o código IBGE falhou: ' + e.message);
       }
+    }
 
-      document.getElementById('mun-nome').value = nome;
-      if (codigo) document.getElementById('mun-codigo-ibge').value = codigo;
-
+    if (nome && uf) {
       const repetido = listaMunicipios.some(x =>
-        x.uf === d.uf && normalizar(x.nome) === normalizar(nome) &&
+        x.uf === uf && normalizar(x.nome) === normalizar(nome) &&
         x.id !== editandoMunicipio?.id);
       if (repetido) {
-        mostrarAviso(aviso, `${nome}/${d.uf} já está cadastrado.`);
+        mostrarAviso(aviso, `${nome}/${uf} já está cadastrado.`);
         return;
       }
     }
