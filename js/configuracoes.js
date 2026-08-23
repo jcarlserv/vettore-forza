@@ -295,40 +295,50 @@ async function buscarCnpjMunicipio() {
   try {
     const d = await consultarCnpj(document.getElementById('mun-cnpj').value);
 
-    // Município e UF, em ordem de confiabilidade:
-    // 1) o que a API devolveu; 2) a razão social da prefeitura,
-    // que sempre contém o nome ("MUNICIPIO DE IBIAPINA").
-    let uf = d.uf;
-    let nome = d.cidade;
+    // ---- Município e UF ----
+    // Não dependem de um campo específico da resposta. Três fontes,
+    // da mais confiável para a menos, e a primeira que der resultado
+    // vence.
+    let uf   = d.uf   || '';
+    let nome = d.cidade || '';
 
+    // Fonte 2: o CEP. Formato fixo, sempre traz cidade e estado.
+    if ((!uf || !nome) && d.cep) {
+      const porCep = await consultarCep(d.cep);
+      if (porCep) {
+        uf   = uf   || porCep.uf;
+        nome = nome || porCep.cidade;
+      }
+    }
+
+    // Fonte 3: a razão social. Toda prefeitura carrega o nome do
+    // município nela — "MUNICIPIO DE CHORO" vira "CHORO".
     if (!nome && d.razao_social) {
       nome = d.razao_social
-        .replace(/^(munic[ií]pio|prefeitura)\s+(municipal\s+)?(de\s+|do\s+|da\s+|d[oa]s\s+)?/i, '')
+        .replace(/^(munic[ií]pio|prefeitura|pref\.?)\s+/i, '')
+        .replace(/^(municipal\s+)/i, '')
+        .replace(/^(de\s+|do\s+|da\s+|dos\s+|das\s+)/i, '')
         .trim();
     }
 
-    if (uf)   document.getElementById('mun-uf').value = uf;
-    if (nome) document.getElementById('mun-nome').value = nome;
+    document.getElementById('mun-uf').value   = uf;
+    document.getElementById('mun-nome').value = nome;
+    console.log('[Vettore] Preenchido — UF:', uf, '| Município:', nome);
 
-    // Grafia oficial e código IBGE saem da mesma consulta.
+    // Grafia oficial e código IBGE, quando a lista estiver disponível.
     if (uf && nome) {
       try {
         const achado = (await municipiosDaUf(uf))
           .find(mun => normalizar(mun.nome) === normalizar(nome));
-
         if (achado) {
           document.getElementById('mun-nome').value = achado.nome;
           document.getElementById('mun-codigo-ibge').value = achado.codigo;
           nome = achado.nome;
-        } else {
-          console.warn('[Vettore] Fora da lista da UF:', nome, uf);
         }
       } catch (e) {
-        mostrarAviso(aviso, 'Dados preenchidos, mas o código IBGE falhou: ' + e.message);
+        console.warn('[Vettore] Código IBGE indisponível:', e.message);
       }
-    }
 
-    if (nome && uf) {
       const repetido = listaMunicipios.some(x =>
         x.uf === uf && normalizar(x.nome) === normalizar(nome) &&
         x.id !== editandoMunicipio?.id);
