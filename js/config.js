@@ -23,64 +23,62 @@ const CONFIG = {
   SUPABASE_URL:  'https://xaiqztvshgdwwxugjlow.supabase.co',
   SUPABASE_ANON: 'sb_publishable_5MdGLCMpnIs_nldAIlmHrA_73HjWVb1',
 
-  VERSAO: 'v0.2.0'
+  VERSAO: 'v0.3.0'
 };
 
-// Cores sugeridas na aba Identidade Visual.
-const CORES_SUGERIDAS = [
-  { nome: 'Carimbo',   valor: '#1B6B55' },
-  { nome: 'Tinta',     valor: '#16202E' },
-  { nome: 'Ferrugem',  valor: '#A8481B' },
-  { nome: 'Índigo',    valor: '#2F4B7C' },
-  { nome: 'Vinho',     valor: '#7A2E3F' },
-  { nome: 'Grafite',   valor: '#4A5563' }
-];
-
 /* -------------------------------------------------------------
-   Teste de conexão automático
+   Temas
 
-   Roda sozinho ao abrir a página e imprime o resultado no console,
-   sem precisar colar nada. Lê a tabela papel, que é pública para
-   qualquer autenticado e existe desde o script 01 — se ela responde,
-   a conexão está de pé e o problema é outro.
+   O tema Vettore vem da logomarca: o azul royal das faixas
+   superior e inferior, e o ciano da faixa central. O royal manda
+   nas ações; o ciano aparece em destaques e confirmações, onde o
+   verde antes ficava. O fundo saiu do bege para um cinza-azulado
+   frio, que é a temperatura da marca.
+
+   Os demais temas existem porque cada OSC tem sua identidade —
+   a logo do cliente entra ao lado da marca do produto, e as cores
+   do sistema acompanham a dela.
    ------------------------------------------------------------- */
 
-async function testarConexao() {
-  const marca = 'color:#1B6B55;font-weight:600';
-  console.log('%c[Vettore] Testando conexão…', marca);
-  console.log('[Vettore] URL:', CONFIG.SUPABASE_URL);
-  console.log('[Vettore] Chave:', CONFIG.SUPABASE_ANON.slice(0, 22) + '…');
-
-  if (typeof sb === 'undefined') {
-    console.error('[Vettore] O cliente não foi criado. Verifique se api.js carregou depois de config.js.');
-    return;
+const TEMAS = {
+  vettore: {
+    nome: 'Vettore',
+    marca:      '#1F55A5',   // azul royal — faixas da logo
+    secundaria: '#00A3E0',   // ciano — faixa central
+    topo:       '#143A70',   // royal escurecido, para a barra
+    fundo:      '#F4F6FA'
+  },
+  oceano: {
+    nome: 'Oceano',
+    marca: '#0E7490', secundaria: '#22D3EE', topo: '#0C4A5E', fundo: '#F2F7F9'
+  },
+  carimbo: {
+    nome: 'Carimbo',
+    marca: '#1B6B55', secundaria: '#3FA88A', topo: '#123F33', fundo: '#F5F4F0'
+  },
+  ferrugem: {
+    nome: 'Ferrugem',
+    marca: '#A8481B', secundaria: '#E08A4B', topo: '#5C2A11', fundo: '#FAF5F1'
+  },
+  vinho: {
+    nome: 'Vinho',
+    marca: '#7A2E3F', secundaria: '#C2607A', topo: '#4A1A26', fundo: '#FAF4F5'
+  },
+  grafite: {
+    nome: 'Grafite',
+    marca: '#3F4A5A', secundaria: '#7C8CA3', topo: '#222C39', fundo: '#F5F6F8'
   }
+};
 
-  try {
-    const { data, error } = await sb.from('papel').select('codigo');
+const TEMA_PADRAO = 'vettore';
 
-    if (error) {
-      console.error('%c[Vettore] O banco respondeu com erro:', 'color:#A8481B;font-weight:600', error.message);
-      if (/api key/i.test(error.message))
-        console.warn('[Vettore] A chave não foi aceita. Pegue a anon public em Project Settings > API.');
-      else if (/relation .* does not exist/i.test(error.message))
-        console.warn('[Vettore] Conexão OK, mas as tabelas não existem. Rode o sql/01_fundacao_acesso.sql.');
-      return;
-    }
-
-    console.log('%c[Vettore] Conexão OK.', marca, data.length + ' papéis encontrados:',
-                data.map(p => p.codigo).join(', '));
-
-    const { count } = await sb.from('perfil').select('*', { count: 'exact', head: true });
-    if (count === 0)
-      console.warn('[Vettore] Nenhum perfil cadastrado. Rode o sql/99_reset_usuarios.sql.');
-    else
-      console.log('[Vettore] Perfis cadastrados:', count);
-
-  } catch (e) {
-    console.error('%c[Vettore] Não houve resposta do servidor.', 'color:#A8481B;font-weight:600', e.message);
-    console.warn('[Vettore] Causas comuns: URL errada, projeto pausado no Supabase, ou sem internet.');
-  }
+// Aplica um conjunto de cores na página inteira, agora.
+// As variações (hover, fundo suave, borda) são derivadas por
+// color-mix no CSS — informar quatro cores basta.
+function aplicarTema({ marca, secundaria, topo, fundo }) {
+  const raiz = document.documentElement.style;
+  if (marca)      raiz.setProperty('--marca', marca);
+  if (secundaria) raiz.setProperty('--destaque', secundaria);
+  if (topo)       raiz.setProperty('--topo-bg', topo);
+  if (fundo)      raiz.setProperty('--papel', fundo);
 }
-
-window.addEventListener('load', () => setTimeout(testarConexao, 300));

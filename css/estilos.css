@@ -1,24 +1,39 @@
 /* =============================================================
    Prestação de Contas — OSC
    estilos.css — v0.1.0
-   Direção: dossiê institucional. Tinta sobre papel, dados em
-   monoespaçada, carimbo verde como único acento.
+   Direção: dossiê institucional em temperatura fria. Os dois azuis
+   da logomarca — royal nas ações, ciano nos destaques — sobre papel
+   levemente azulado. Dados em monoespaçada.
+
+   As quatro cores do tema vivem em :root e são trocadas em tempo
+   real pela Organização. Nenhuma cor de tema é escrita duas vezes:
+   hovers, bordas e fundos suaves saem de color-mix sobre elas.
    ============================================================= */
 
 :root {
-  --tinta:      #16202E;
-  --tinta-70:   #4A5563;
-  --tinta-40:   #8A929C;
-  --papel:      #F5F4F0;
+  /* Tinta e linhas com temperatura fria, para acompanhar o azul
+     da marca. Antes eram neutras-quentes, do tema anterior. */
+  --tinta:      #10243F;
+  --tinta-70:   #45566E;
+  --tinta-40:   #8593A6;
+  --papel:      #F4F6FA;
   --papel-alto: #FFFFFF;
-  --linha:      #DCD9D1;
-  --carimbo:    #1B6B55;
-  --carimbo-10: #E6F0EC;
+  --linha:      #D9DFE8;
+
+  /* As quatro cores do tema — trocadas pela Organização.
+     Tudo o mais é derivado delas por color-mix, então mudar
+     estas quatro repinta o sistema inteiro. */
+  --marca:      #1F55A5;
+  --destaque:   #00A3E0;
+  --topo-bg:    #143A70;
+
   --alerta:     #A8481B;
   --alerta-10:  #F7ECE5;
 
-  /* sobrescritos pela aba Identidade Visual */
-  --marca:      var(--carimbo);
+  /* Derivados: nunca escritos à mão, sempre a partir do tema. */
+  --marca-suave:    color-mix(in srgb, var(--marca) 8%, white);
+  --destaque-suave: color-mix(in srgb, var(--destaque) 12%, white);
+  --marca-borda:    color-mix(in srgb, var(--marca) 35%, white);
 
   --r: 3px;
   --sombra: 0 1px 2px rgba(22,32,46,.06), 0 8px 24px rgba(22,32,46,.05);
@@ -77,7 +92,7 @@ button, input, select, textarea { font: inherit; color: inherit; }
     repeating-linear-gradient(
       to bottom,
       transparent 0 31px,
-      rgba(22,32,46,.045) 31px 32px
+      color-mix(in srgb, var(--tinta) 5%, transparent) 31px 32px
     ),
     var(--papel);
 }
@@ -95,6 +110,11 @@ button, input, select, textarea { font: inherit; color: inherit; }
 .selo {
   width: 44px; height: 44px;
   border: 2px solid var(--marca);
+  background: linear-gradient(
+    to bottom,
+    transparent 0 34%,
+    var(--destaque-suave) 34% 66%,
+    transparent 66%);
   border-radius: 50%;
   display: grid; place-items: center;
   font-family: "IBM Plex Mono", monospace;
@@ -194,7 +214,11 @@ input:focus, select:focus, textarea:focus {
   margin-bottom: 14px;
 }
 .aviso.erro  { background: var(--alerta-10);  border-color: var(--alerta);  color: var(--alerta); }
-.aviso.ok    { background: var(--carimbo-10); border-color: var(--carimbo); color: var(--carimbo); }
+.aviso.ok {
+  background: var(--destaque-suave);
+  border-color: color-mix(in srgb, var(--destaque) 60%, white);
+  color: color-mix(in srgb, var(--destaque) 70%, var(--tinta));
+}
 
 /* ---------- Estrutura do app ---------- */
 
@@ -206,7 +230,7 @@ input:focus, select:focus, textarea:focus {
   gap: 16px;
   padding: 0 20px;
   height: 56px;
-  background: var(--tinta);
+  background: var(--topo-bg);
   color: #fff;
   flex-shrink: 0;
 }
@@ -328,9 +352,13 @@ main { padding: 24px 20px 60px; max-width: 1140px; width: 100%; margin: 0 auto; 
   cursor: pointer;
 }
 .sub-aba[aria-selected="true"] {
-  background: var(--tinta);
-  border-color: var(--tinta);
+  background: var(--marca);
+  border-color: var(--marca);
   color: #fff;
+}
+.sub-aba:hover:not([aria-selected="true"]) {
+  border-color: var(--marca-borda);
+  color: var(--marca);
 }
 
 /* ---------- Tabelas ---------- */
@@ -366,7 +394,11 @@ table.lista tbody tr:hover { background: var(--papel); }
   border: 1px solid var(--linha);
   color: var(--tinta-70);
 }
-.tag.ativo   { color: var(--carimbo); border-color: var(--carimbo); background: var(--carimbo-10); }
+.tag.ativo {
+  color: color-mix(in srgb, var(--destaque) 75%, var(--tinta));
+  border-color: color-mix(in srgb, var(--destaque) 55%, white);
+  background: var(--destaque-suave);
+}
 .tag.inativo { color: var(--tinta-40); }
 
 /* ---------- Matriz de permissões (elemento assinatura) ---------- */
@@ -381,6 +413,7 @@ table.matriz {
   font-size: 13px;
 }
 table.matriz thead th {
+  background: var(--marca-suave);
   font-family: "IBM Plex Mono", monospace;
   font-size: 10px;
   letter-spacing: .08em;
@@ -388,7 +421,7 @@ table.matriz thead th {
   color: var(--tinta-70);
   font-weight: 500;
   padding: 10px 6px;
-  border-bottom: 2px solid var(--tinta);
+  border-bottom: 2px solid var(--marca);
   text-align: center;
   width: 92px;
 }
@@ -409,7 +442,7 @@ table.matriz td:first-child {
   border-left: none;
   padding-left: 14px;
 }
-table.matriz tbody tr:hover td { background: var(--carimbo-10); }
+table.matriz tbody tr:hover td { background: var(--destaque-suave); }
 
 .matriz .grupo td {
   background: var(--papel);
@@ -476,6 +509,63 @@ input[type=checkbox] {
   font-size: 12.5px;
   color: var(--tinta-40);
   margin-top: 10px;
+}
+
+/* ---------- Seletor de tema ---------- */
+
+.grade-temas {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.cartao-tema {
+  border: 1px solid var(--linha);
+  border-radius: var(--r);
+  padding: 0;
+  background: var(--papel-alto);
+  cursor: pointer;
+  overflow: hidden;
+  text-align: left;
+  transition: border-color .15s, box-shadow .15s;
+}
+.cartao-tema:hover { border-color: var(--marca-borda); }
+.cartao-tema[aria-pressed="true"] {
+  border-color: var(--marca);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--marca) 20%, transparent);
+}
+
+/* Miniatura do sistema: barra do topo, faixa de destaque e
+   fundo — as três superfícies que o tema realmente muda. */
+.amostra-tema { height: 42px; display: flex; flex-direction: column; }
+.amostra-tema .faixa-topo { height: 14px; }
+.amostra-tema .faixa-corpo { flex: 1; display: flex; align-items: center; padding: 0 8px; gap: 5px; }
+.amostra-tema .pastilha { width: 22px; height: 7px; border-radius: 2px; }
+.amostra-tema .pastilha.dois { width: 12px; }
+
+.cartao-tema .rotulo-tema {
+  display: block;
+  padding: 7px 10px;
+  font-size: 13px;
+  font-weight: 500;
+  border-top: 1px solid var(--linha);
+}
+
+.grade-cores {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+}
+.campo-cor { display: flex; align-items: center; gap: 8px; }
+.campo-cor input[type=color] {
+  width: 38px; height: 32px; padding: 2px;
+  border: 1px solid var(--linha); border-radius: var(--r);
+  background: none; cursor: pointer;
+}
+.campo-cor .nome-cor { font-size: 13px; }
+.campo-cor .valor-cor {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px; color: var(--tinta-40);
 }
 
 /* ---------- Cadastros: linhas, logos, ações ---------- */
@@ -631,7 +721,8 @@ td.acoes { text-align: right; white-space: nowrap; }
   .usuario-chip .nome,
   .nome-osc,
   .modulo-topo { display: none; }
-  table.matriz thead th { width: 62px; font-size: 9px; }
+  table.matriz thead th {
+  background: var(--marca-suave); width: 62px; font-size: 9px; }
   table.matriz thead th:first-child { min-width: 200px; }
 }
 

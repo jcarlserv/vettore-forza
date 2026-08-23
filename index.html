@@ -179,7 +179,7 @@
               </div>
             </div>
 
-            <div class="divisor-secao"><span>Logomarca e cor</span></div>
+            <div class="divisor-secao"><span>Logomarca</span></div>
 
             <div class="bloco-logo">
               <div class="moldura-logo">
@@ -192,12 +192,35 @@
               </div>
             </div>
 
-            <div class="campo" style="margin-top:16px">
-              <label>Cor da marca</label>
-              <div class="paleta" id="paleta-cores"></div>
-              <div style="margin-top:10px;display:flex;align-items:center;gap:8px">
-                <input type="color" id="cor-livre" style="width:44px;height:34px;padding:2px">
-                <span class="rodape-nota" style="margin:0">Ou escolha uma cor livre. A prévia é imediata.</span>
+            <div class="divisor-secao"><span>Tema do sistema</span></div>
+
+            <p class="rodape-nota" style="margin:0 0 12px">
+              Escolha um tema pronto ou ajuste cada cor. A tela muda enquanto você mexe;
+              nada é gravado até salvar.
+            </p>
+
+            <div class="grade-temas" id="area-temas"></div>
+
+            <div class="grade-cores" style="margin-top:18px">
+              <div class="campo-cor">
+                <input type="color" id="cor-marca">
+                <span><span class="nome-cor">Cor principal</span><br>
+                <span class="valor-cor" data-valor-de="cor-marca"></span></span>
+              </div>
+              <div class="campo-cor">
+                <input type="color" id="cor-destaque">
+                <span><span class="nome-cor">Destaque</span><br>
+                <span class="valor-cor" data-valor-de="cor-destaque"></span></span>
+              </div>
+              <div class="campo-cor">
+                <input type="color" id="cor-topo">
+                <span><span class="nome-cor">Barra superior</span><br>
+                <span class="valor-cor" data-valor-de="cor-topo"></span></span>
+              </div>
+              <div class="campo-cor">
+                <input type="color" id="cor-fundo">
+                <span><span class="nome-cor">Fundo das telas</span><br>
+                <span class="valor-cor" data-valor-de="cor-fundo"></span></span>
               </div>
             </div>
 

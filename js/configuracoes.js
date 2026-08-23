@@ -54,8 +54,7 @@ async function carregarOrganizacao() {
   });
 
   mostrarLogoExistente('previa-logo-org', data.logo_data_url);
-  document.getElementById('cor-livre').value = data.cor_marca || '#1B6B55';
-  montarPaletaCores(data.cor_marca || '#1B6B55');
+  montarSeletorTema(data);
 }
 
 async function salvarOrganizacao(evento) {
@@ -75,7 +74,11 @@ async function salvarOrganizacao(evento) {
     bairro:        document.getElementById('org-bairro').value.trim(),
     cidade:        document.getElementById('org-cidade').value.trim(),
     uf:            document.getElementById('org-uf').value.trim().toUpperCase(),
-    cor_marca:     document.getElementById('cor-livre').value,
+    cor_marca:      document.getElementById('cor-marca').value,
+    cor_secundaria: document.getElementById('cor-destaque').value,
+    cor_topo:       document.getElementById('cor-topo').value,
+    cor_fundo:      document.getElementById('cor-fundo').value,
+    tema:           document.getElementById('area-temas').dataset.tema || 'personalizado',
     atualizado_em: new Date().toISOString(),
     atualizado_por: Sessao.perfil.id
   };
@@ -91,31 +94,112 @@ async function salvarOrganizacao(evento) {
   await carregarIdentidadeVisual();
 }
 
-/* -------- Cor da marca -------- */
+/* -------- Tema -------- */
 
-function montarPaletaCores(corAtual) {
-  const paleta = document.getElementById('paleta-cores');
-  paleta.innerHTML = CORES_SUGERIDAS.map(c => `
-    <button type="button" class="amostra-cor" data-cor="${c.valor}"
-            style="background:${c.valor}" title="${c.nome}" aria-label="Cor ${c.nome}"
-            aria-pressed="${c.valor.toLowerCase() === corAtual.toLowerCase()}"></button>
-  `).join('');
-  paleta.querySelectorAll('.amostra-cor').forEach(b =>
-    b.onclick = () => escolherCor(b.dataset.cor));
+const CAMPOS_COR = [
+  { id: 'cor-marca',    chave: 'marca',      rotulo: 'Cor principal',
+    ajuda: 'Botões, abas ativas e links.' },
+  { id: 'cor-destaque', chave: 'secundaria', rotulo: 'Destaque',
+    ajuda: 'Confirmações e marcadores.' },
+  { id: 'cor-topo',     chave: 'topo',       rotulo: 'Barra superior',
+    ajuda: 'Fundo do cabeçalho.' },
+  { id: 'cor-fundo',    chave: 'fundo',      rotulo: 'Fundo das telas',
+    ajuda: 'Superfície atrás dos painéis.' }
+];
+
+function montarSeletorTema(org) {
+  const area = document.getElementById('area-temas');
+
+  area.innerHTML = Object.entries(TEMAS).map(([chave, t]) => `
+    <button type="button" class="cartao-tema" data-tema="${chave}"
+            aria-pressed="${(org.tema || TEMA_PADRAO) === chave}">
+      <span class="amostra-tema" style="background:${t.fundo}">
+        <span class="faixa-topo" style="background:${t.topo}"></span>
+        <span class="faixa-corpo">
+          <span class="pastilha" style="background:${t.marca}"></span>
+          <span class="pastilha dois" style="background:${t.secundaria}"></span>
+        </span>
+      </span>
+      <span class="rotulo-tema">${t.nome}</span>
+    </button>`).join('');
+
+  area.dataset.tema = org.tema || TEMA_PADRAO;
+  area.querySelectorAll('.cartao-tema').forEach(b =>
+    b.onclick = () => escolherTema(b.dataset.tema));
+
+  const atual = {
+    marca:      org.cor_marca      || TEMAS[TEMA_PADRAO].marca,
+    secundaria: org.cor_secundaria || TEMAS[TEMA_PADRAO].secundaria,
+    topo:       org.cor_topo       || TEMAS[TEMA_PADRAO].topo,
+    fundo:      org.cor_fundo      || TEMAS[TEMA_PADRAO].fundo
+  };
+
+  CAMPOS_COR.forEach(c => {
+    const input = document.getElementById(c.id);
+    input.value = atual[c.chave];
+    atualizarRotuloCor(c.id);
+    input.oninput = () => {
+      aplicarTema(lerCoresDaTela());
+      atualizarRotuloCor(c.id);
+      marcarPersonalizado();
+    };
+  });
+
+  aplicarTema(atual);
 }
 
-function escolherCor(cor) {
-  document.documentElement.style.setProperty('--marca', cor);
-  document.getElementById('cor-livre').value = cor;
-  document.querySelectorAll('.amostra-cor').forEach(b =>
-    b.setAttribute('aria-pressed', b.dataset.cor.toLowerCase() === cor.toLowerCase()));
+function lerCoresDaTela() {
+  return {
+    marca:      document.getElementById('cor-marca').value,
+    secundaria: document.getElementById('cor-destaque').value,
+    topo:       document.getElementById('cor-topo').value,
+    fundo:      document.getElementById('cor-fundo').value
+  };
+}
+
+function escolherTema(chave) {
+  const t = TEMAS[chave];
+  if (!t) return;
+
+  document.getElementById('cor-marca').value    = t.marca;
+  document.getElementById('cor-destaque').value = t.secundaria;
+  document.getElementById('cor-topo').value     = t.topo;
+  document.getElementById('cor-fundo').value    = t.fundo;
+  CAMPOS_COR.forEach(c => atualizarRotuloCor(c.id));
+
+  aplicarTema(t);
+
+  const area = document.getElementById('area-temas');
+  area.dataset.tema = chave;
+  area.querySelectorAll('.cartao-tema').forEach(b =>
+    b.setAttribute('aria-pressed', b.dataset.tema === chave));
+}
+
+// Mexeu numa cor à mão: nenhum tema pronto representa mais a
+// escolha, então nenhum fica marcado.
+function marcarPersonalizado() {
+  const area = document.getElementById('area-temas');
+  area.dataset.tema = 'personalizado';
+  area.querySelectorAll('.cartao-tema').forEach(b =>
+    b.setAttribute('aria-pressed', 'false'));
+}
+
+function atualizarRotuloCor(id) {
+  const input = document.getElementById(id);
+  const alvo = document.querySelector(`[data-valor-de="${id}"]`);
+  if (alvo) alvo.textContent = input.value.toUpperCase();
 }
 
 async function carregarIdentidadeVisual() {
   const { data } = await sb.from('organizacao').select('*').maybeSingle();
   if (!data) return;
   Sessao.organizacao = data;
-  if (data.cor_marca) document.documentElement.style.setProperty('--marca', data.cor_marca);
+  aplicarTema({
+    marca:      data.cor_marca,
+    secundaria: data.cor_secundaria,
+    topo:       data.cor_topo,
+    fundo:      data.cor_fundo
+  });
 
   const img = document.getElementById('logo-topo');
   if (data.logo_data_url) { img.src = data.logo_data_url; img.hidden = false; }
