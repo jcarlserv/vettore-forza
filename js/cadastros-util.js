@@ -31,6 +31,21 @@ function aplicarMascara(campo, fn) {
 // BrasilAPI: pública, sem cadastro, aceita chamada do navegador.
 // Devolve o que está na Receita Federal. Os campos continuam
 // editáveis depois — a consulta preenche, não trava.
+// Consulta de CEP — usada como rede de segurança quando o CNPJ não
+// devolve município e UF com os nomes esperados.
+async function consultarCep(cep) {
+  const numero = apenasNumeros(cep);
+  if (numero.length !== 8) return null;
+  try {
+    const r = await fetch('https://brasilapi.com.br/api/cep/v2/' + numero);
+    if (!r.ok) return null;
+    const d = await r.json();
+    return { cidade: d.city || '', uf: (d.state || '').toUpperCase() };
+  } catch {
+    return null;
+  }
+}
+
 async function consultarCnpj(cnpj) {
   const numero = apenasNumeros(cnpj);
   if (numero.length !== 14) throw new Error('CNPJ incompleto — precisa de 14 dígitos.');
@@ -55,7 +70,7 @@ async function consultarCnpj(cnpj) {
     return '';
   };
 
-  return {
+  const dados = {
     razao_social:   d.razao_social || '',
     nome_fantasia:  d.nome_fantasia || '',
     cep:            mascaraCep(d.cep || ''),
@@ -80,6 +95,19 @@ async function consultarCnpj(cnpj) {
     responsavel:    (d.qsa || [])[0]?.nome_socio || '',
     qsa:            d.qsa || []
   };
+
+  // Se município ou UF não vieram, o CEP resolve. O endereço da
+  // Receita e o do CEP são o mesmo lugar, então não há conflito.
+  if ((!dados.cidade || !dados.uf) && dados.cep) {
+    const porCep = await consultarCep(dados.cep);
+    if (porCep) {
+      dados.cidade = dados.cidade || porCep.cidade;
+      dados.uf     = dados.uf     || porCep.uf;
+      console.log('[Vettore] Município/UF obtidos pelo CEP:', porCep);
+    }
+  }
+
+  return dados;
 }
 
 // Liga o botão de busca a um conjunto de campos.
