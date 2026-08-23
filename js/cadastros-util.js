@@ -42,6 +42,18 @@ async function consultarCnpj(cnpj) {
   if (!resposta.ok)            throw new Error('A consulta não respondeu. Preencha os campos à mão.');
 
   const d = await resposta.json();
+  console.log('[Vettore] Resposta do CNPJ:', d);
+
+  // Nomes de campo variam entre provedores e entre versões da API.
+  // Aceitar as grafias conhecidas evita que só município e UF venham
+  // vazios enquanto o resto preenche.
+  const pegar = (...chaves) => {
+    for (const c of chaves) {
+      const v = c.split('.').reduce((o, k) => o?.[k], d);
+      if (v) return String(v);
+    }
+    return '';
+  };
 
   return {
     razao_social:   d.razao_social || '',
@@ -51,8 +63,11 @@ async function consultarCnpj(cnpj) {
     numero:         d.numero || '',
     complemento:    d.complemento || '',
     bairro:         d.bairro || '',
-    cidade:         d.municipio || '',
-    uf:             d.uf || '',
+    cidade:         pegar('municipio', 'cidade', 'nome_municipio',
+                           'municipio.nome', 'estabelecimento.cidade.nome'),
+    uf:             pegar('uf', 'estado', 'sigla_uf',
+                           'estado.sigla', 'estabelecimento.estado.sigla')
+                      .toUpperCase().slice(0, 2),
     telefone:       d.ddd_telefone_1 || '',
     email:          d.email || '',
     situacao:       d.descricao_situacao_cadastral || '',
