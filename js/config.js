@@ -1,5 +1,5 @@
 /* =============================================================
-   Vettore — config.js — v0.1.3
+   Vettore — config.js — v0.2.0
    Credenciais e constantes do projeto.
 
    A chave abaixo é a publishable (anon). Ela É pública por desenho:
@@ -23,7 +23,7 @@ const CONFIG = {
   SUPABASE_URL:  'https://xaiqztvshgdwwxugjlow.supabase.co',
   SUPABASE_ANON: 'sb_publishable_5MdGLCMpnIs_nldAIlmHrA_73HjWVb1',
 
-  VERSAO: 'v0.1.3'
+  VERSAO: 'v0.2.0'
 };
 
 // Cores sugeridas na aba Identidade Visual.

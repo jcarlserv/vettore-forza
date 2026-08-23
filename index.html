@@ -17,9 +17,8 @@
 <div id="tela-login">
   <div class="cartao-login">
     <div class="selo" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none"
-           stroke="currentColor" stroke-width="2.2"
-           stroke-linecap="round" stroke-linejoin="round">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor"
+           stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M4 5 L12 19 L20 5"></path>
       </svg>
     </div>
@@ -59,9 +58,9 @@
 
   <header class="topo">
     <img id="logo-topo" class="logo" alt="" hidden>
-    <svg id="marca-simbolo" class="simbolo-topo" viewBox="0 0 24 24" width="17" height="17"
-         fill="none" stroke="currentColor" stroke-width="2.4"
-         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <svg class="simbolo-topo" viewBox="0 0 24 24" width="17" height="17" fill="none"
+         stroke="currentColor" stroke-width="2.4" stroke-linecap="round"
+         stroke-linejoin="round" aria-hidden="true">
       <path d="M4 5 L12 19 L20 5"></path>
     </svg>
     <span class="marca-nome" id="marca-nome">Vettore</span>
@@ -80,64 +79,23 @@
     <button class="aba" data-aba="inicio"        role="tab" aria-selected="true">Início</button>
     <button class="aba" data-aba="prestacoes"    role="tab" aria-selected="false" data-permissao="prestacao.ver">Prestações</button>
     <button class="aba" data-aba="fornecedores"  role="tab" aria-selected="false" data-permissao="prestacao.ver">Fornecedores</button>
-    <button class="aba" data-aba="cadastros"     role="tab" aria-selected="false" data-permissao="cadastro.ver">Cadastros</button>
     <button class="aba" data-aba="configuracoes" role="tab" aria-selected="false" data-permissao="config.acessar">Configurações</button>
   </nav>
 
   <main>
 
-    <!-- ---------- Início ---------- -->
-    <section class="secao" data-aba="inicio">
-      <div class="cabecalho-secao">
-        <span class="eyebrow">Sessão</span>
-        <h2>Bem-vindo</h2>
-        <p>O sistema está sendo construído por etapas. Esta é a fundação: acesso, papéis e parametrizações.</p>
-      </div>
+    <!-- ---------- Início (em branco por enquanto) ---------- -->
+    <section class="secao" data-aba="inicio"></section>
 
-      <div class="grade-2">
-        <div class="painel">
-          <header><h3>Seu papel</h3></header>
-          <div class="conteudo">
-            <p class="titulo mono" style="font-size:24px" id="resumo-papel">—</p>
-            <p class="rodape-nota">Define o que você enxerga por padrão. Exceções individuais são possíveis.</p>
-          </div>
-        </div>
-        <div class="painel">
-          <header><h3>Parametrizações liberadas</h3></header>
-          <div class="conteudo">
-            <p class="titulo mono" style="font-size:24px" id="resumo-permissoes">—</p>
-            <p class="rodape-nota">Cada parametrização nova do sistema entra automaticamente nesta conta.</p>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ---------- Placeholders das próximas etapas ---------- -->
     <section class="secao" data-aba="prestacoes" hidden>
-      <div class="cabecalho-secao">
-        <span class="eyebrow">Etapa 5</span>
-        <h2>Prestações</h2>
-      </div>
-      <div class="painel"><div class="vazio">Este módulo entra depois da Edge Function do Google Drive.</div></div>
+      <div class="painel"><div class="vazio">Módulo em construção.</div></div>
     </section>
 
     <section class="secao" data-aba="fornecedores" hidden>
-      <div class="cabecalho-secao">
-        <span class="eyebrow">Etapa 4</span>
-        <h2>Fornecedores</h2>
-      </div>
-      <div class="painel"><div class="vazio">Notas fiscais, pagamentos e repositório de CNDs entram aqui.</div></div>
+      <div class="painel"><div class="vazio">Módulo em construção.</div></div>
     </section>
 
-    <section class="secao" data-aba="cadastros" hidden>
-      <div class="cabecalho-secao">
-        <span class="eyebrow">Etapa 3</span>
-        <h2>Cadastros</h2>
-      </div>
-      <div class="painel"><div class="vazio">Municípios, unidades de saúde e contratos de gestão.</div></div>
-    </section>
-
-    <!-- ---------- Configurações ---------- -->
+    <!-- ================= CONFIGURAÇÕES ================= -->
     <section class="secao" data-aba="configuracoes" hidden>
       <div class="cabecalho-secao">
         <span class="eyebrow">Administração</span>
@@ -147,25 +105,36 @@
 
       <div class="sub-abas" role="tablist">
         <button class="sub-aba" data-sub="organizacao" role="tab" aria-selected="true">Organização</button>
-        <button class="sub-aba" data-sub="visual"      role="tab" aria-selected="false" data-permissao="config.visual.editar">Identidade visual</button>
+        <button class="sub-aba" data-sub="municipios"  role="tab" aria-selected="false" data-permissao="config.municipios.ver">Municípios</button>
+        <button class="sub-aba" data-sub="unidades"    role="tab" aria-selected="false" data-permissao="config.unidades.ver">Unidades</button>
         <button class="sub-aba" data-sub="usuarios"    role="tab" aria-selected="false" data-permissao="config.usuarios.ver">Usuários</button>
         <button class="sub-aba" data-sub="permissoes"  role="tab" aria-selected="false" data-permissao="config.permissoes.editar">Permissões</button>
       </div>
 
-      <!-- Organização -->
+      <!-- ---------- Organização ---------- -->
       <div class="painel painel-config" data-sub="organizacao">
-        <header><h3>Dados da organização</h3></header>
+        <header><h3>Organização Social</h3></header>
         <div class="conteudo">
           <div id="aviso-org" class="aviso" hidden></div>
+
           <form id="form-org">
-            <div class="grade-2">
+            <div class="linha-cnpj">
+              <div class="campo" style="margin:0;flex:1">
+                <label for="org-cnpj">CNPJ</label>
+                <input type="text" id="org-cnpj" class="mono" placeholder="00.000.000/0001-00">
+              </div>
+              <button type="button" class="botao neutro" id="buscar-cnpj-org">Buscar dados</button>
+            </div>
+            <p class="rodape-nota">Digite o CNPJ e busque — razão social, endereço e contato vêm da Receita Federal.</p>
+
+            <div class="grade-2" style="margin-top:14px">
               <div class="campo">
                 <label for="org-razao">Razão social</label>
                 <input type="text" id="org-razao" required>
               </div>
               <div class="campo">
-                <label for="org-cnpj">CNPJ</label>
-                <input type="text" id="org-cnpj" class="mono" placeholder="00.000.000/0001-00">
+                <label for="org-fantasia">Nome fantasia</label>
+                <input type="text" id="org-fantasia">
               </div>
               <div class="campo">
                 <label for="org-email">Email de suporte</label>
@@ -176,67 +145,127 @@
                 <input type="text" id="org-telefone" class="mono">
               </div>
             </div>
-            <button type="submit" class="botao" data-permissao="config.organizacao.editar">Salvar alterações</button>
+
+            <div class="divisor-secao"><span>Endereço</span></div>
+
+            <div class="grade-endereco">
+              <div class="campo cep">
+                <label for="org-cep">CEP</label>
+                <input type="text" id="org-cep" class="mono">
+              </div>
+              <div class="campo logradouro">
+                <label for="org-logradouro">Logradouro</label>
+                <input type="text" id="org-logradouro">
+              </div>
+              <div class="campo numero">
+                <label for="org-numero">Número</label>
+                <input type="text" id="org-numero">
+              </div>
+              <div class="campo">
+                <label for="org-complemento">Complemento</label>
+                <input type="text" id="org-complemento">
+              </div>
+              <div class="campo">
+                <label for="org-bairro">Bairro</label>
+                <input type="text" id="org-bairro">
+              </div>
+              <div class="campo">
+                <label for="org-cidade">Cidade</label>
+                <input type="text" id="org-cidade">
+              </div>
+              <div class="campo uf">
+                <label for="org-uf">UF</label>
+                <input type="text" id="org-uf" class="mono" maxlength="2">
+              </div>
+            </div>
+
+            <div class="divisor-secao"><span>Logomarca e cor</span></div>
+
+            <div class="bloco-logo">
+              <div class="moldura-logo">
+                <img id="previa-logo-org" alt="Logomarca da organização" hidden>
+              </div>
+              <div>
+                <input type="file" id="arquivo-logo-org" accept="image/png,image/jpeg,image/svg+xml">
+                <p class="rodape-nota">PNG, JPG ou SVG, até 300 KB.</p>
+                <button type="button" class="botao neutro pequeno" id="remover-logo-org">Remover logo</button>
+              </div>
+            </div>
+
+            <div class="campo" style="margin-top:16px">
+              <label>Cor da marca</label>
+              <div class="paleta" id="paleta-cores"></div>
+              <div style="margin-top:10px;display:flex;align-items:center;gap:8px">
+                <input type="color" id="cor-livre" style="width:44px;height:34px;padding:2px">
+                <span class="rodape-nota" style="margin:0">Ou escolha uma cor livre. A prévia é imediata.</span>
+              </div>
+            </div>
+
+            <button type="submit" class="botao" style="margin-top:18px"
+                    data-permissao="config.organizacao.editar">Salvar organização</button>
           </form>
         </div>
       </div>
 
-      <!-- Identidade visual -->
-      <div class="painel painel-config" data-sub="visual" hidden>
-        <header><h3>Identidade visual</h3></header>
+      <!-- ---------- Municípios ---------- -->
+      <div class="painel painel-config" data-sub="municipios" hidden>
+        <header>
+          <h3>Municípios</h3>
+          <div class="espaco"></div>
+          <button class="botao" id="novo-municipio" data-permissao="config.municipios.editar">
+            Adicionar município</button>
+        </header>
         <div class="conteudo">
-          <div id="aviso-visual" class="aviso" hidden></div>
-
-          <div class="campo">
-            <label for="arquivo-logo">Logo</label>
-            <input type="file" id="arquivo-logo" accept="image/png,image/jpeg,image/svg+xml">
-            <p class="rodape-nota">PNG, JPG ou SVG, até 300 KB. O sistema sugere uma cor a partir da imagem.</p>
-          </div>
-
-          <div style="margin:12px 0">
-            <img id="previa-logo" alt="Logo enviada" hidden
-                 style="max-height:52px;background:var(--papel);padding:8px;border:1px solid var(--linha);border-radius:var(--r)">
-          </div>
-
-          <div class="campo">
-            <label>Cor da marca</label>
-            <div class="paleta" id="paleta-cores"></div>
-            <div style="margin-top:10px;display:flex;align-items:center;gap:8px">
-              <input type="color" id="cor-livre" style="width:44px;height:34px;padding:2px">
-              <span class="rodape-nota" style="margin:0">Ou escolha uma cor livre. A prévia é imediata.</span>
-            </div>
-          </div>
-
-          <div style="display:flex;gap:8px;margin-top:16px">
-            <button class="botao" id="salvar-visual">Salvar aparência</button>
-            <button class="botao neutro" id="remover-logo">Remover logo</button>
-          </div>
+          <table class="lista">
+            <thead><tr>
+              <th>Município</th><th>UF</th><th>Secretaria de Saúde</th><th>Unidades</th><th></th>
+            </tr></thead>
+            <tbody id="corpo-municipios"></tbody>
+          </table>
         </div>
       </div>
 
-      <!-- Usuários -->
+      <!-- ---------- Unidades ---------- -->
+      <div class="painel painel-config" data-sub="unidades" hidden>
+        <header>
+          <h3>Unidades de saúde</h3>
+          <div class="espaco"></div>
+          <button class="botao" id="nova-unidade" data-permissao="config.unidades.editar">
+            Adicionar unidade</button>
+        </header>
+        <div class="conteudo">
+          <table class="lista">
+            <thead><tr>
+              <th>Unidade</th><th>Tipo</th><th>Município</th><th>Responsável</th><th></th>
+            </tr></thead>
+            <tbody id="corpo-unidades"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ---------- Usuários ---------- -->
       <div class="painel painel-config" data-sub="usuarios" hidden>
         <header>
           <h3>Usuários</h3>
           <div class="espaco"></div>
+          <button class="botao" id="novo-usuario" data-permissao="config.usuarios.editar">
+            Adicionar usuário</button>
         </header>
         <div class="conteudo">
           <table class="lista">
-            <thead>
-              <tr>
-                <th>Pessoa</th><th>Papel</th><th>Situação</th><th>Último acesso</th><th></th>
-              </tr>
-            </thead>
+            <thead><tr>
+              <th>Pessoa</th><th>Papel</th><th>Alcance</th><th>Situação</th><th></th>
+            </tr></thead>
             <tbody id="corpo-usuarios"></tbody>
           </table>
           <p class="rodape-nota">
-            Novos acessos são criados em Authentication no painel do Supabase e ganham perfil aqui.
-            O cadastro direto pela tela entra junto com a Edge Function, que é quem pode criar login com segurança.
+            O papel define o que a pessoa faz; o alcance define onde. Marcar um município
+            inteiro cobre também as unidades criadas depois.
           </p>
         </div>
       </div>
 
-      <!-- Permissões -->
+      <!-- ---------- Permissões ---------- -->
       <div class="painel painel-config" data-sub="permissoes" hidden>
         <header>
           <h3 id="titulo-matriz">Padrão por papel</h3>
@@ -260,30 +289,199 @@
   </footer>
 </div>
 
-<!-- ===================== MODAL DE USUÁRIO ===================== -->
-<div class="fundo-modal" id="modal-usuario" hidden>
-  <div class="modal">
-    <header><h3 class="titulo">Editar usuário</h3></header>
+<!-- ===================== MODAL: MUNICÍPIO ===================== -->
+<div class="fundo-modal" id="modal-municipio" hidden>
+  <div class="modal largo">
+    <header><h3 class="titulo" id="titulo-municipio">Novo município</h3></header>
     <div class="corpo">
-      <div class="campo">
-        <label for="edit-nome">Nome</label>
-        <input type="text" id="edit-nome">
+      <div id="aviso-municipio" class="aviso" hidden></div>
+
+      <div class="grade-2">
+        <div class="campo">
+          <label for="mun-nome">Nome do município</label>
+          <input type="text" id="mun-nome">
+        </div>
+        <div class="campo uf">
+          <label for="mun-uf">UF</label>
+          <input type="text" id="mun-uf" class="mono" maxlength="2">
+        </div>
+        <div class="campo">
+          <label for="mun-codigo-ibge">Código IBGE</label>
+          <input type="text" id="mun-codigo-ibge" class="mono">
+        </div>
+        <div class="campo">
+          <label for="mun-cnpj">CNPJ da prefeitura</label>
+          <input type="text" id="mun-cnpj" class="mono">
+        </div>
+        <div class="campo">
+          <label for="mun-prefeito">Prefeito(a)</label>
+          <input type="text" id="mun-prefeito">
+        </div>
+        <div class="campo">
+          <label for="mun-secretaria-saude">Secretário(a) de Saúde</label>
+          <input type="text" id="mun-secretaria-saude">
+        </div>
+        <div class="campo">
+          <label for="mun-email">Email</label>
+          <input type="email" id="mun-email">
+        </div>
+        <div class="campo">
+          <label for="mun-telefone">Telefone</label>
+          <input type="text" id="mun-telefone" class="mono">
+        </div>
       </div>
-      <div class="campo">
-        <label for="edit-email">Email</label>
-        <input type="email" id="edit-email" disabled>
-        <p class="rodape-nota">O email é a chave do login e só muda pelo painel de autenticação.</p>
+
+      <div class="divisor-secao"><span>Brasão</span></div>
+
+      <div class="bloco-logo">
+        <div class="moldura-logo">
+          <img id="previa-logo-mun" alt="Brasão do município" hidden>
+        </div>
+        <div>
+          <input type="file" id="arquivo-logo-mun" accept="image/png,image/jpeg,image/svg+xml">
+          <p class="rodape-nota">Entra nas capas do PDF. Até 300 KB.</p>
+          <button type="button" class="botao neutro pequeno" id="remover-logo-mun">Remover</button>
+        </div>
       </div>
-      <div class="campo">
-        <label for="edit-papel">Papel</label>
-        <select id="edit-papel"></select>
-      </div>
-      <label style="display:flex;align-items:center;gap:8px;font-size:14px">
-        <input type="checkbox" id="edit-ativo"> Acesso ativo
-      </label>
     </div>
     <footer>
-      <button class="botao neutro" id="fechar-usuario">Cancelar</button>
+      <button class="botao neutro" data-fechar="modal-municipio">Cancelar</button>
+      <button class="botao" id="salvar-municipio">Salvar</button>
+    </footer>
+  </div>
+</div>
+
+<!-- ===================== MODAL: UNIDADE ===================== -->
+<div class="fundo-modal" id="modal-unidade" hidden>
+  <div class="modal largo">
+    <header><h3 class="titulo" id="titulo-unidade">Nova unidade</h3></header>
+    <div class="corpo">
+      <div id="aviso-unidade" class="aviso" hidden></div>
+
+      <div class="linha-cnpj">
+        <div class="campo" style="margin:0;flex:1">
+          <label for="uni-cnpj">CNPJ</label>
+          <input type="text" id="uni-cnpj" class="mono" placeholder="00.000.000/0001-00">
+        </div>
+        <button type="button" class="botao neutro" id="buscar-cnpj-uni">Buscar dados</button>
+      </div>
+
+      <div class="grade-2" style="margin-top:14px">
+        <div class="campo">
+          <label for="uni-nome">Nome da unidade</label>
+          <input type="text" id="uni-nome">
+        </div>
+        <div class="campo">
+          <label for="uni-tipo">Tipo</label>
+          <select id="uni-tipo"></select>
+        </div>
+        <div class="campo">
+          <label for="uni-municipio">Município</label>
+          <select id="uni-municipio"></select>
+        </div>
+        <div class="campo">
+          <label for="uni-cnes">CNES</label>
+          <input type="text" id="uni-cnes" class="mono">
+        </div>
+        <div class="campo">
+          <label for="uni-responsavel">Responsável técnico</label>
+          <input type="text" id="uni-responsavel">
+        </div>
+        <div class="campo">
+          <label for="uni-telefone">Telefone</label>
+          <input type="text" id="uni-telefone" class="mono">
+        </div>
+        <div class="campo">
+          <label for="uni-email">Email</label>
+          <input type="email" id="uni-email">
+        </div>
+      </div>
+
+      <div class="divisor-secao"><span>Endereço</span></div>
+
+      <div class="grade-endereco">
+        <div class="campo cep">
+          <label for="uni-cep">CEP</label>
+          <input type="text" id="uni-cep" class="mono">
+        </div>
+        <div class="campo logradouro">
+          <label for="uni-logradouro">Logradouro</label>
+          <input type="text" id="uni-logradouro">
+        </div>
+        <div class="campo numero">
+          <label for="uni-numero">Número</label>
+          <input type="text" id="uni-numero">
+        </div>
+        <div class="campo">
+          <label for="uni-complemento">Complemento</label>
+          <input type="text" id="uni-complemento">
+        </div>
+        <div class="campo">
+          <label for="uni-bairro">Bairro</label>
+          <input type="text" id="uni-bairro">
+        </div>
+      </div>
+
+      <div class="divisor-secao"><span>Logomarca</span></div>
+
+      <div class="bloco-logo">
+        <div class="moldura-logo">
+          <img id="previa-logo-uni" alt="Logomarca da unidade" hidden>
+        </div>
+        <div>
+          <input type="file" id="arquivo-logo-uni" accept="image/png,image/jpeg,image/svg+xml">
+          <p class="rodape-nota">Entra nas capas do PDF. Até 300 KB.</p>
+          <button type="button" class="botao neutro pequeno" id="remover-logo-uni">Remover</button>
+        </div>
+      </div>
+    </div>
+    <footer>
+      <button class="botao neutro" data-fechar="modal-unidade">Cancelar</button>
+      <button class="botao" id="salvar-unidade">Salvar</button>
+    </footer>
+  </div>
+</div>
+
+<!-- ===================== MODAL: USUÁRIO ===================== -->
+<div class="fundo-modal" id="modal-usuario" hidden>
+  <div class="modal largo">
+    <header><h3 class="titulo" id="titulo-usuario">Novo usuário</h3></header>
+    <div class="corpo">
+      <div id="aviso-usuario" class="aviso" hidden></div>
+
+      <div class="grade-2">
+        <div class="campo">
+          <label for="usu-nome">Nome</label>
+          <input type="text" id="usu-nome">
+        </div>
+        <div class="campo">
+          <label for="usu-papel">Papel</label>
+          <select id="usu-papel"></select>
+        </div>
+      </div>
+
+      <div class="campo">
+        <label for="usu-email">Email</label>
+        <input type="email" id="usu-email">
+        <p class="rodape-nota" id="nota-email"></p>
+      </div>
+
+      <div class="campo" id="bloco-senha" hidden>
+        <label for="usu-senha">Senha provisória</label>
+        <input type="text" id="usu-senha" class="mono" autocomplete="off">
+        <p class="rodape-nota">Mínimo de 6 caracteres. Passe para a pessoa e peça que troque no primeiro acesso.</p>
+      </div>
+
+      <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-top:6px">
+        <input type="checkbox" id="usu-ativo"> Acesso ativo
+      </label>
+
+      <div class="divisor-secao"><span>Alcance</span></div>
+
+      <div id="area-alcance" class="area-alcance"></div>
+    </div>
+    <footer>
+      <button class="botao neutro" data-fechar="modal-usuario">Cancelar</button>
       <button class="botao" id="salvar-usuario">Salvar</button>
     </footer>
   </div>
@@ -293,6 +491,7 @@
 <script src="js/config.js"></script>
 <script src="js/api.js"></script>
 <script src="js/autenticacao.js"></script>
+<script src="js/cadastros-util.js"></script>
 <script src="js/configuracoes.js"></script>
 <script src="js/app.js"></script>
 </body>

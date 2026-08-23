@@ -1,18 +1,20 @@
 /* =============================================================
-   configuracoes.js — v0.1.0
-   Aba Configurações: Organização, Identidade Visual, Usuários,
-   Permissões.
+   Vettore — configuracoes.js — v0.2.0
 
-   A matriz de permissões não tem nenhuma permissão escrita no
-   código. Ela é montada a partir de permissao_catalogo. Uma
-   parametrização nova aparece aqui sozinha assim que for
-   registrada no banco com registrar_permissao().
+   Cinco áreas, na ordem em que o cadastro precisa ser feito:
+   Organização → Municípios → Unidades → Usuários → Permissões.
+   Cada uma depende da anterior, e as telas dizem isso quando a
+   anterior está vazia.
+
+   A matriz de permissões continua sem nenhuma permissão escrita
+   no código: é montada a partir de permissao_catalogo.
    ============================================================= */
 
 let subAbaAtual = 'organizacao';
-let listaUsuarios = [];
-let padroesPapel = {};       // { papel: { chave: bool } }
+let listaUsuarios = [], listaMunicipios = [], listaUnidades = [];
+let padroesPapel = {};
 let usuarioSelecionado = null;
+let editandoMunicipio = null, editandoUnidade = null, editandoUsuario = null;
 
 function irParaSubAba(nome) {
   subAbaAtual = nome;
@@ -21,85 +23,85 @@ function irParaSubAba(nome) {
   document.querySelectorAll('.painel-config').forEach(p =>
     p.hidden = p.dataset.sub !== nome);
 
-  if (nome === 'organizacao') carregarOrganizacao();
-  if (nome === 'visual')      carregarFormularioVisual();
-  if (nome === 'usuarios')    carregarUsuarios();
-  if (nome === 'permissoes')  carregarMatrizPermissoes();
+  ({
+    organizacao: carregarOrganizacao,
+    municipios:  carregarMunicipios,
+    unidades:    carregarUnidades,
+    usuarios:    carregarUsuarios,
+    permissoes:  carregarMatrizPermissoes
+  }[nome] || (() => {}))();
 }
 
-/* ============ Organização ============ */
+/* =============================================================
+   ORGANIZAÇÃO
+   ============================================================= */
 
 async function carregarOrganizacao() {
   const { data } = await sb.from('organizacao').select('*').maybeSingle();
   if (!data) return;
   Sessao.organizacao = data;
-  document.getElementById('org-razao').value    = data.razao_social || '';
-  document.getElementById('org-cnpj').value     = data.cnpj || '';
-  document.getElementById('org-email').value    = data.email_suporte || '';
-  document.getElementById('org-telefone').value = data.telefone || '';
+
+  const campos = {
+    'org-cnpj': 'cnpj', 'org-razao': 'razao_social', 'org-fantasia': 'nome_fantasia',
+    'org-email': 'email_suporte', 'org-telefone': 'telefone',
+    'org-cep': 'cep', 'org-logradouro': 'logradouro', 'org-numero': 'numero',
+    'org-complemento': 'complemento', 'org-bairro': 'bairro',
+    'org-cidade': 'cidade', 'org-uf': 'uf'
+  };
+  Object.entries(campos).forEach(([id, col]) => {
+    const el = document.getElementById(id);
+    if (el) el.value = data[col] || '';
+  });
+
+  mostrarLogoExistente('previa-logo-org', data.logo_data_url);
+  document.getElementById('cor-livre').value = data.cor_marca || '#1B6B55';
+  montarPaletaCores(data.cor_marca || '#1B6B55');
 }
 
 async function salvarOrganizacao(evento) {
   evento.preventDefault();
   const aviso = document.getElementById('aviso-org');
-  const { error } = await sb.from('organizacao').update({
-    razao_social:  document.getElementById('org-razao').value.trim(),
+
+  const dados = {
     cnpj:          document.getElementById('org-cnpj').value.trim(),
+    razao_social:  document.getElementById('org-razao').value.trim(),
+    nome_fantasia: document.getElementById('org-fantasia').value.trim(),
     email_suporte: document.getElementById('org-email').value.trim(),
     telefone:      document.getElementById('org-telefone').value.trim(),
+    cep:           document.getElementById('org-cep').value.trim(),
+    logradouro:    document.getElementById('org-logradouro').value.trim(),
+    numero:        document.getElementById('org-numero').value.trim(),
+    complemento:   document.getElementById('org-complemento').value.trim(),
+    bairro:        document.getElementById('org-bairro').value.trim(),
+    cidade:        document.getElementById('org-cidade').value.trim(),
+    uf:            document.getElementById('org-uf').value.trim().toUpperCase(),
+    cor_marca:     document.getElementById('cor-livre').value,
     atualizado_em: new Date().toISOString(),
     atualizado_por: Sessao.perfil.id
-  }).eq('id', Sessao.organizacao.id);
+  };
 
+  const logo = valorLogoParaSalvar('previa-logo-org');
+  if (logo !== undefined) dados.logo_data_url = logo;
+
+  const { error } = await sb.from('organizacao').update(dados).eq('id', Sessao.organizacao.id);
   if (error) return mostrarAviso(aviso, 'Não foi possível salvar: ' + error.message);
-  mostrarAviso(aviso, 'Dados da organização salvos.', 'ok');
+
+  mostrarAviso(aviso, 'Organização salva.', 'ok');
   registrarAuditoria('organizacao', Sessao.organizacao.id, 'ALTERAR');
-  document.getElementById('nome-osc').textContent =
-    document.getElementById('org-razao').value.trim();
+  await carregarIdentidadeVisual();
 }
 
-/* ============ Identidade visual ============ */
+/* -------- Cor da marca -------- */
 
-async function carregarIdentidadeVisual() {
-  const { data } = await sb.from('organizacao').select('*').maybeSingle();
-  if (!data) return;
-  Sessao.organizacao = data;
-  aplicarIdentidade(data.cor_marca, data.logo_data_url, data.razao_social);
-}
-
-// Vettore é o nome do produto e não muda. A logo e a cor configuradas
-// aqui são da OSC que usa o sistema — entram como identidade do cliente,
-// ao lado da marca, não no lugar dela.
-function aplicarIdentidade(cor, logo, nome) {
-  if (cor) document.documentElement.style.setProperty('--marca', cor);
-  const img = document.getElementById('logo-topo');
-  if (logo) { img.src = logo; img.hidden = false; } else { img.hidden = true; }
-  if (nome) document.getElementById('nome-osc').textContent = nome;
-}
-
-function carregarFormularioVisual() {
+function montarPaletaCores(corAtual) {
   const paleta = document.getElementById('paleta-cores');
-  const corAtual = Sessao.organizacao?.cor_marca || '#1B6B55';
-
   paleta.innerHTML = CORES_SUGERIDAS.map(c => `
     <button type="button" class="amostra-cor" data-cor="${c.valor}"
-            style="background:${c.valor}" title="${c.nome}"
-            aria-label="Cor ${c.nome}"
+            style="background:${c.valor}" title="${c.nome}" aria-label="Cor ${c.nome}"
             aria-pressed="${c.valor.toLowerCase() === corAtual.toLowerCase()}"></button>
   `).join('');
-
-  paleta.querySelectorAll('.amostra-cor').forEach(b => {
-    b.onclick = () => escolherCor(b.dataset.cor);
-  });
-
-  document.getElementById('cor-livre').value = corAtual;
-  const previa = document.getElementById('previa-logo');
-  if (Sessao.organizacao?.logo_data_url) {
-    previa.src = Sessao.organizacao.logo_data_url;
-    previa.hidden = false;
-  } else {
-    previa.hidden = true;
-  }
+  paleta.querySelectorAll('.amostra-cor').forEach(b =>
+    b.onclick = () => escolherCor(b.dataset.cor));
 }
 
 function escolherCor(cor) {
@@ -109,160 +111,488 @@ function escolherCor(cor) {
     b.setAttribute('aria-pressed', b.dataset.cor.toLowerCase() === cor.toLowerCase()));
 }
 
-// Lê a logo e sugere a cor mais presente nela, ignorando pixels
-// quase brancos, quase pretos e transparentes — que são fundo,
-// não identidade.
-function tratarArquivoLogo(evento) {
-  const arquivo = evento.target.files[0];
-  const aviso = document.getElementById('aviso-visual');
-  if (!arquivo) return;
+async function carregarIdentidadeVisual() {
+  const { data } = await sb.from('organizacao').select('*').maybeSingle();
+  if (!data) return;
+  Sessao.organizacao = data;
+  if (data.cor_marca) document.documentElement.style.setProperty('--marca', data.cor_marca);
 
-  if (arquivo.size > 300 * 1024) {
-    return mostrarAviso(aviso, 'A logo precisa ter até 300 KB. Reduza o arquivo e envie de novo.');
-  }
-  limparAviso(aviso);
+  const img = document.getElementById('logo-topo');
+  if (data.logo_data_url) { img.src = data.logo_data_url; img.hidden = false; }
+  else img.hidden = true;
 
-  const leitor = new FileReader();
-  leitor.onload = e => {
-    const dataUrl = e.target.result;
-    const previa = document.getElementById('previa-logo');
-    previa.src = dataUrl;
-    previa.hidden = false;
-    previa.dataset.novaLogo = dataUrl;
-    sugerirCorDaLogo(dataUrl);
-  };
-  leitor.readAsDataURL(arquivo);
+  document.getElementById('nome-osc').textContent =
+    data.nome_fantasia || data.razao_social || '';
 }
 
-function sugerirCorDaLogo(dataUrl) {
-  const img = new Image();
-  img.onload = () => {
-    const c = document.createElement('canvas');
-    const lado = 60;
-    c.width = lado; c.height = lado;
-    const ctx = c.getContext('2d');
-    ctx.drawImage(img, 0, 0, lado, lado);
+/* =============================================================
+   MUNICÍPIOS
+   ============================================================= */
 
-    const px = ctx.getImageData(0, 0, lado, lado).data;
-    const contagem = {};
+async function carregarMunicipios() {
+  const corpo = document.getElementById('corpo-municipios');
+  corpo.innerHTML = linhaCarregando(4);
 
-    for (let i = 0; i < px.length; i += 4) {
-      const [r, g, b, a] = [px[i], px[i+1], px[i+2], px[i+3]];
-      if (a < 200) continue;
-      const soma = r + g + b;
-      if (soma > 690 || soma < 60) continue;         // fundo claro/escuro
-      const chave = `${r >> 4},${g >> 4},${b >> 4}`; // agrupa tons vizinhos
-      contagem[chave] = (contagem[chave] || 0) + 1;
-    }
+  listaMunicipios = await buscarTudo('municipio', '*', q => q.order('nome'));
+  if (!listaUnidades.length)
+    listaUnidades = await buscarTudo('unidade_saude', '*', q => q.order('nome'));
 
-    const dominante = Object.entries(contagem).sort((a, b) => b[1] - a[1])[0];
-    if (!dominante) return;
-
-    const [r, g, b] = dominante[0].split(',').map(n => (parseInt(n) << 4) + 8);
-    const hex = '#' + [r, g, b].map(n => n.toString(16).padStart(2, '0')).join('');
-    escolherCor(hex);
-    mostrarAviso(document.getElementById('aviso-visual'),
-      'Cor sugerida a partir da logo. Troque se não for a certa.', 'ok');
-  };
-  img.src = dataUrl;
-}
-
-async function salvarIdentidadeVisual() {
-  const aviso = document.getElementById('aviso-visual');
-  const previa = document.getElementById('previa-logo');
-  const atualizacao = {
-    cor_marca: document.getElementById('cor-livre').value,
-    atualizado_em: new Date().toISOString(),
-    atualizado_por: Sessao.perfil.id
-  };
-  if (previa.dataset.novaLogo) atualizacao.logo_data_url = previa.dataset.novaLogo;
-
-  const { error } = await sb.from('organizacao').update(atualizacao)
-    .eq('id', Sessao.organizacao.id);
-
-  if (error) return mostrarAviso(aviso, 'Não foi possível salvar: ' + error.message);
-  mostrarAviso(aviso, 'Identidade visual salva.', 'ok');
-  registrarAuditoria('organizacao', Sessao.organizacao.id, 'ALTERAR', { visual: true });
-  await carregarIdentidadeVisual();
-}
-
-async function removerLogo() {
-  await sb.from('organizacao').update({ logo_data_url: null })
-    .eq('id', Sessao.organizacao.id);
-  document.getElementById('previa-logo').hidden = true;
-  delete document.getElementById('previa-logo').dataset.novaLogo;
-  await carregarIdentidadeVisual();
-}
-
-/* ============ Usuários ============ */
-
-async function carregarUsuarios() {
-  const corpo = document.getElementById('corpo-usuarios');
-  corpo.innerHTML = '<tr><td colspan="5" class="vazio">Carregando…</td></tr>';
-
-  listaUsuarios = await buscarTudo('perfil', '*', q => q.order('nome'));
-
-  if (!listaUsuarios.length) {
-    corpo.innerHTML = '<tr><td colspan="5" class="vazio">Nenhum usuário cadastrado ainda.</td></tr>';
+  if (!listaMunicipios.length) {
+    corpo.innerHTML = linhaVazia(4,
+      'Nenhum município cadastrado. Comece por aqui — toda unidade pertence a um município.');
     return;
   }
 
-  const rotulos = Object.fromEntries(Sessao.papeis.map(p => [p.codigo, p.rotulo]));
+  corpo.innerHTML = listaMunicipios.map(m => `
+    <tr>
+      <td>${celulaComLogo(m.logo_data_url, m.nome, m.codigo_ibge ? 'IBGE ' + m.codigo_ibge : '')}</td>
+      <td class="dado">${escapar(m.uf)}</td>
+      <td>${escapar(m.secretaria_saude || '—')}</td>
+      <td>${contarUnidadesDo(m.id)}</td>
+      <td class="acoes">${botoesAcao('municipio', m.id, false)}</td>
+    </tr>`).join('');
+
+  aplicarPermissoesNaTela(corpo);
+}
+
+function contarUnidadesDo(municipioId) {
+  const n = listaUnidades.filter(u => u.municipio_id === municipioId).length;
+  return n ? `<span class="dado">${n}</span>` : '<span style="color:var(--tinta-40)">—</span>';
+}
+
+function abrirMunicipio(id) {
+  editandoMunicipio = id ? listaMunicipios.find(m => m.id === id) : null;
+  const m = editandoMunicipio || {};
+
+  document.getElementById('titulo-municipio').textContent =
+    id ? 'Editar município' : 'Novo município';
+
+  ['nome','uf','codigo-ibge','cnpj','prefeito','secretaria-saude','email','telefone']
+    .forEach(c => {
+      const el = document.getElementById('mun-' + c);
+      if (el) el.value = m[c.replace(/-/g, '_')] || '';
+    });
+
+  mostrarLogoExistente('previa-logo-mun', m.logo_data_url);
+  limparAviso(document.getElementById('aviso-municipio'));
+  document.getElementById('modal-municipio').hidden = false;
+}
+
+async function salvarMunicipio() {
+  const aviso = document.getElementById('aviso-municipio');
+  const nome = document.getElementById('mun-nome').value.trim();
+  const uf   = document.getElementById('mun-uf').value.trim().toUpperCase();
+
+  if (!nome || uf.length !== 2)
+    return mostrarAviso(aviso, 'Nome e UF são obrigatórios. A UF tem duas letras.');
+
+  const dados = {
+    nome, uf,
+    codigo_ibge:      document.getElementById('mun-codigo-ibge').value.trim(),
+    cnpj:             document.getElementById('mun-cnpj').value.trim(),
+    prefeito:         document.getElementById('mun-prefeito').value.trim(),
+    secretaria_saude: document.getElementById('mun-secretaria-saude').value.trim(),
+    email:            document.getElementById('mun-email').value.trim(),
+    telefone:         document.getElementById('mun-telefone').value.trim()
+  };
+
+  const logo = valorLogoParaSalvar('previa-logo-mun');
+  if (logo !== undefined) dados.logo_data_url = logo;
+
+  let error;
+  if (editandoMunicipio) {
+    ({ error } = await sb.from('municipio').update(dados).eq('id', editandoMunicipio.id));
+  } else {
+    dados.criado_por = Sessao.perfil.id;
+    ({ error } = await sb.from('municipio').insert(dados));
+  }
+
+  if (error) {
+    return mostrarAviso(aviso, /duplicate|unique/i.test(error.message)
+      ? 'Já existe um município com esse nome nessa UF.'
+      : 'Não foi possível salvar: ' + error.message);
+  }
+
+  registrarAuditoria('municipio', editandoMunicipio?.id, editandoMunicipio ? 'ALTERAR' : 'INSERIR');
+  document.getElementById('modal-municipio').hidden = true;
+  await carregarMunicipios();
+}
+
+async function excluirMunicipio(id) {
+  const m = listaMunicipios.find(x => x.id === id);
+  const vinculadas = listaUnidades.filter(u => u.municipio_id === id).length;
+
+  if (vinculadas)
+    return alert(`${m.nome} tem ${vinculadas} unidade(s) vinculada(s). Exclua ou transfira as unidades primeiro.`);
+
+  if (!confirm(`Excluir o município ${m.nome}? Esta ação não pode ser desfeita.`)) return;
+
+  const { error } = await sb.from('municipio').delete().eq('id', id);
+  if (error) return alert('Não foi possível excluir: ' + error.message);
+
+  registrarAuditoria('municipio', id, 'EXCLUIR', { nome: m.nome });
+  await carregarMunicipios();
+}
+
+/* =============================================================
+   UNIDADES
+   ============================================================= */
+
+const TIPOS_UNIDADE = ['Hospital','UPA','UBS','Policlínica','CAPS','SAMU','Laboratório','Outro'];
+
+async function carregarUnidades() {
+  const corpo = document.getElementById('corpo-unidades');
+  corpo.innerHTML = linhaCarregando(4);
+
+  if (!listaMunicipios.length)
+    listaMunicipios = await buscarTudo('municipio', '*', q => q.order('nome'));
+
+  listaUnidades = await buscarTudo('unidade_saude', '*', q => q.order('nome'));
+
+  if (!listaMunicipios.length) {
+    corpo.innerHTML = linhaVazia(4, 'Cadastre um município antes — toda unidade pertence a um.');
+    return;
+  }
+  if (!listaUnidades.length) {
+    corpo.innerHTML = linhaVazia(4, 'Nenhuma unidade cadastrada ainda.');
+    return;
+  }
+
+  const nomeMunicipio = Object.fromEntries(
+    listaMunicipios.map(m => [m.id, `${m.nome}/${m.uf}`]));
+
+  corpo.innerHTML = listaUnidades.map(u => `
+    <tr>
+      <td>${celulaComLogo(u.logo_data_url, u.nome, u.cnes ? 'CNES ' + u.cnes : '')}</td>
+      <td>${escapar(u.tipo)}</td>
+      <td>${escapar(nomeMunicipio[u.municipio_id] || '—')}</td>
+      <td>${escapar(u.responsavel || '—')}</td>
+      <td class="acoes">${botoesAcao('unidade', u.id, false)}</td>
+    </tr>`).join('');
+
+  aplicarPermissoesNaTela(corpo);
+}
+
+function abrirUnidade(id) {
+  editandoUnidade = id ? listaUnidades.find(u => u.id === id) : null;
+  const u = editandoUnidade || {};
+
+  document.getElementById('titulo-unidade').textContent = id ? 'Editar unidade' : 'Nova unidade';
+
+  document.getElementById('uni-municipio').innerHTML = listaMunicipios.map(m =>
+    `<option value="${m.id}" ${m.id === u.municipio_id ? 'selected' : ''}>${escapar(m.nome)}/${m.uf}</option>`
+  ).join('');
+
+  document.getElementById('uni-tipo').innerHTML = TIPOS_UNIDADE.map(t =>
+    `<option ${t === u.tipo ? 'selected' : ''}>${t}</option>`).join('');
+
+  ['nome','cnpj','cnes','responsavel','email','telefone',
+   'cep','logradouro','numero','complemento','bairro'].forEach(c => {
+    const el = document.getElementById('uni-' + c);
+    if (el) el.value = u[c] || '';
+  });
+
+  mostrarLogoExistente('previa-logo-uni', u.logo_data_url);
+  limparAviso(document.getElementById('aviso-unidade'));
+  document.getElementById('modal-unidade').hidden = false;
+}
+
+async function salvarUnidade() {
+  const aviso = document.getElementById('aviso-unidade');
+  const nome = document.getElementById('uni-nome').value.trim();
+  if (!nome) return mostrarAviso(aviso, 'O nome da unidade é obrigatório.');
+
+  const dados = {
+    municipio_id: document.getElementById('uni-municipio').value,
+    nome,
+    tipo:        document.getElementById('uni-tipo').value,
+    cnpj:        document.getElementById('uni-cnpj').value.trim(),
+    cnes:        document.getElementById('uni-cnes').value.trim(),
+    responsavel: document.getElementById('uni-responsavel').value.trim(),
+    email:       document.getElementById('uni-email').value.trim(),
+    telefone:    document.getElementById('uni-telefone').value.trim(),
+    cep:         document.getElementById('uni-cep').value.trim(),
+    logradouro:  document.getElementById('uni-logradouro').value.trim(),
+    numero:      document.getElementById('uni-numero').value.trim(),
+    complemento: document.getElementById('uni-complemento').value.trim(),
+    bairro:      document.getElementById('uni-bairro').value.trim()
+  };
+
+  const logo = valorLogoParaSalvar('previa-logo-uni');
+  if (logo !== undefined) dados.logo_data_url = logo;
+
+  let error;
+  if (editandoUnidade) {
+    ({ error } = await sb.from('unidade_saude').update(dados).eq('id', editandoUnidade.id));
+  } else {
+    dados.criado_por = Sessao.perfil.id;
+    ({ error } = await sb.from('unidade_saude').insert(dados));
+  }
+
+  if (error) {
+    return mostrarAviso(aviso, /duplicate|unique/i.test(error.message)
+      ? 'Já existe uma unidade com esse nome nesse município.'
+      : 'Não foi possível salvar: ' + error.message);
+  }
+
+  registrarAuditoria('unidade_saude', editandoUnidade?.id, editandoUnidade ? 'ALTERAR' : 'INSERIR');
+  document.getElementById('modal-unidade').hidden = true;
+  await carregarUnidades();
+}
+
+async function excluirUnidade(id) {
+  const u = listaUnidades.find(x => x.id === id);
+  if (!confirm(`Excluir a unidade ${u.nome}? Esta ação não pode ser desfeita.`)) return;
+
+  const { error } = await sb.from('unidade_saude').delete().eq('id', id);
+  if (error) {
+    return alert(/foreign key/i.test(error.message)
+      ? 'Esta unidade já tem registros vinculados e não pode ser excluída.'
+      : 'Não foi possível excluir: ' + error.message);
+  }
+
+  registrarAuditoria('unidade_saude', id, 'EXCLUIR', { nome: u.nome });
+  await carregarUnidades();
+}
+
+/* =============================================================
+   USUÁRIOS
+   ============================================================= */
+
+async function carregarUsuarios() {
+  const corpo = document.getElementById('corpo-usuarios');
+  corpo.innerHTML = linhaCarregando(4);
+
+  const [perfis, vincUnidade, vincMunicipio] = await Promise.all([
+    buscarTudo('perfil', '*', q => q.order('nome')),
+    buscarTudo('usuario_unidade', '*'),
+    buscarTudo('usuario_municipio', '*')
+  ]);
+
+  if (!listaMunicipios.length)
+    listaMunicipios = await buscarTudo('municipio', '*', q => q.order('nome'));
+  if (!listaUnidades.length)
+    listaUnidades = await buscarTudo('unidade_saude', '*', q => q.order('nome'));
+
+  listaUsuarios = perfis.map(p => ({
+    ...p,
+    unidades:   vincUnidade.filter(v => v.perfil_id === p.id).map(v => v.unidade_saude_id),
+    municipios: vincMunicipio.filter(v => v.perfil_id === p.id).map(v => v.municipio_id)
+  }));
+
+  const rotuloPapel   = Object.fromEntries(Sessao.papeis.map(p => [p.codigo, p.rotulo]));
+  const nomeUnidade   = Object.fromEntries(listaUnidades.map(u => [u.id, u.nome]));
+  const nomeMunicipio = Object.fromEntries(listaMunicipios.map(m => [m.id, m.nome]));
 
   corpo.innerHTML = listaUsuarios.map(u => `
     <tr>
       <td>
         <strong>${escapar(u.nome)}</strong><br>
-        <span class="dado" style="font-size:12px;color:var(--tinta-40)">${escapar(u.email)}</span>
+        <span class="dado sub-linha">${escapar(u.email)}</span>
       </td>
-      <td>${escapar(rotulos[u.papel] || u.papel)}</td>
+      <td>${escapar(rotuloPapel[u.papel] || u.papel)}</td>
+      <td>${descreverAlcance(u, nomeMunicipio, nomeUnidade)}</td>
       <td><span class="tag ${u.ativo ? 'ativo' : 'inativo'}">${u.ativo ? 'Ativo' : 'Inativo'}</span></td>
-      <td class="dado" style="font-size:12px">
-        ${u.ultimo_acesso ? new Date(u.ultimo_acesso).toLocaleDateString('pt-BR') : '—'}
-      </td>
-      <td style="text-align:right">
-        <button class="botao neutro" data-permissao="config.usuarios.editar"
-                onclick="abrirEdicaoUsuario('${u.id}')">Editar</button>
-        <button class="botao neutro" data-permissao="config.permissoes.editar"
-                onclick="abrirPermissoesDoUsuario('${u.id}')">Permissões</button>
-      </td>
-    </tr>
-  `).join('');
+      <td class="acoes">${botoesAcao('usuario', u.id, true)}</td>
+    </tr>`).join('');
 
   aplicarPermissoesNaTela(corpo);
 }
 
-function abrirEdicaoUsuario(id) {
-  const u = listaUsuarios.find(x => x.id === id);
-  if (!u) return;
-  usuarioSelecionado = u;
+// Administrador e Gestão alcançam tudo por definição do papel;
+// listar unidades para eles seria mentira na tela.
+function descreverAlcance(u, nomeMunicipio, nomeUnidade) {
+  if (['Administrador','Gestao'].includes(u.papel))
+    return '<span class="tag">Todas as unidades</span>';
 
-  document.getElementById('edit-nome').value = u.nome;
-  document.getElementById('edit-email').value = u.email;
-  document.getElementById('edit-ativo').checked = u.ativo;
+  const partes = [];
+  u.municipios.forEach(id =>
+    partes.push(`<span class="tag">${escapar(nomeMunicipio[id] || '?')} — todas</span>`));
+  u.unidades.forEach(id =>
+    partes.push(`<span class="tag">${escapar(nomeUnidade[id] || '?')}</span>`));
 
-  const sel = document.getElementById('edit-papel');
-  sel.innerHTML = Sessao.papeis.map(p =>
+  return partes.length
+    ? `<div class="pilha-tags">${partes.join('')}</div>`
+    : '<span style="color:var(--alerta);font-size:12.5px">Sem unidade — não vê nada</span>';
+}
+
+function abrirUsuario(id) {
+  editandoUsuario = id ? listaUsuarios.find(u => u.id === id) : null;
+  const u = editandoUsuario || {};
+  const novo = !id;
+
+  document.getElementById('titulo-usuario').textContent = novo ? 'Novo usuário' : 'Editar usuário';
+  document.getElementById('usu-nome').value  = u.nome || '';
+  document.getElementById('usu-email').value = u.email || '';
+  document.getElementById('usu-email').disabled = !novo;
+  document.getElementById('usu-ativo').checked = novo ? true : u.ativo;
+
+  document.getElementById('bloco-senha').hidden = !novo;
+  document.getElementById('usu-senha').value = '';
+  document.getElementById('nota-email').textContent = novo
+    ? 'Será o login da pessoa. Não pode ser alterado depois.'
+    : 'O email é a chave do login e só muda pelo painel de autenticação.';
+
+  document.getElementById('usu-papel').innerHTML = Sessao.papeis.map(p =>
     `<option value="${p.codigo}" ${p.codigo === u.papel ? 'selected' : ''}>${escapar(p.rotulo)}</option>`
   ).join('');
 
+  montarSeletorAlcance(u);
+  document.getElementById('usu-papel').onchange = () => montarSeletorAlcance(u);
+
+  limparAviso(document.getElementById('aviso-usuario'));
   document.getElementById('modal-usuario').hidden = false;
 }
 
-async function salvarUsuario() {
-  const { error } = await sb.from('perfil').update({
-    nome:  document.getElementById('edit-nome').value.trim(),
-    papel: document.getElementById('edit-papel').value,
-    ativo: document.getElementById('edit-ativo').checked
-  }).eq('id', usuarioSelecionado.id);
+function montarSeletorAlcance(u) {
+  const papel = document.getElementById('usu-papel').value;
+  const area  = document.getElementById('area-alcance');
 
-  if (error) return alert('Não foi possível salvar: ' + error.message);
-  registrarAuditoria('perfil', usuarioSelecionado.id, 'ALTERAR');
-  document.getElementById('modal-usuario').hidden = true;
-  carregarUsuarios();
+  if (['Administrador','Gestao'].includes(papel)) {
+    area.innerHTML = `<p class="rodape-nota" style="margin:0">
+      Este papel alcança todas as unidades por definição. Não é preciso escolher.</p>`;
+    return;
+  }
+
+  const marcadosM = new Set(u.municipios || []);
+  const marcadosU = new Set(u.unidades || []);
+
+  area.innerHTML = listaMunicipios.map(m => {
+    const doMunicipio = listaUnidades.filter(x => x.municipio_id === m.id);
+    return `
+      <div class="grupo-alcance">
+        <label class="linha-alcance forte">
+          <input type="checkbox" class="chk-municipio" value="${m.id}"
+                 ${marcadosM.has(m.id) ? 'checked' : ''}>
+          <span>${escapar(m.nome)}/${m.uf} — todas as unidades</span>
+        </label>
+        ${doMunicipio.length
+          ? doMunicipio.map(x => `
+            <label class="linha-alcance recuo">
+              <input type="checkbox" class="chk-unidade" value="${x.id}"
+                     ${marcadosU.has(x.id) ? 'checked' : ''}>
+              <span>${escapar(x.nome)}</span>
+            </label>`).join('')
+          : '<p class="rodape-nota recuo">Sem unidades cadastradas.</p>'}
+      </div>`;
+  }).join('') || '<p class="rodape-nota">Cadastre municípios e unidades primeiro.</p>';
+
+  // Marcar o município cobre todas as unidades dele, inclusive as
+  // que forem criadas depois — então as caixas filhas saem de cena.
+  area.querySelectorAll('.chk-municipio').forEach(chk => {
+    const sincronizar = () => {
+      chk.closest('.grupo-alcance').querySelectorAll('.chk-unidade').forEach(f => {
+        f.disabled = chk.checked;
+        f.closest('label').style.opacity = chk.checked ? .45 : 1;
+      });
+    };
+    chk.addEventListener('change', sincronizar);
+    sincronizar();
+  });
 }
 
-/* ============ Matriz de permissões ============ */
+async function salvarUsuario() {
+  const aviso = document.getElementById('aviso-usuario');
+  const nome  = document.getElementById('usu-nome').value.trim();
+  const email = document.getElementById('usu-email').value.trim().toLowerCase();
+  const papel = document.getElementById('usu-papel').value;
+  const ativo = document.getElementById('usu-ativo').checked;
+  const novo  = !editandoUsuario;
+
+  if (!nome)  return mostrarAviso(aviso, 'Informe o nome da pessoa.');
+  if (!email) return mostrarAviso(aviso, 'Informe o email de acesso.');
+
+  const botao = document.getElementById('salvar-usuario');
+  botao.disabled = true;
+
+  try {
+    let perfilId;
+
+    if (novo) {
+      const senha = document.getElementById('usu-senha').value;
+      if (senha.length < 6) throw new Error('A senha provisória precisa de pelo menos 6 caracteres.');
+
+      // Cliente separado, sem guardar sessão: sem isso o signUp
+      // trocaria a sua sessão pela do usuário recém-criado e você
+      // seria deslogado no meio do cadastro.
+      const sbCadastro = window.supabase.createClient(
+        CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON,
+        { auth: { persistSession: false, autoRefreshToken: false } }
+      );
+
+      const { data, error } = await sbCadastro.auth.signUp({
+        email, password: senha, options: { data: { nome } }
+      });
+      if (error) throw new Error(/already registered/i.test(error.message)
+        ? 'Já existe uma conta com esse email.' : error.message);
+
+      perfilId = data.user?.id;
+      if (!perfilId) throw new Error('A conta foi criada, mas o sistema não recebeu o identificador.');
+
+      const { error: erroPerfil } = await sb.from('perfil')
+        .insert({ id: perfilId, nome, email, papel, ativo, criado_por: Sessao.perfil.id });
+      if (erroPerfil) throw new Error(erroPerfil.message);
+
+    } else {
+      perfilId = editandoUsuario.id;
+      const { error } = await sb.from('perfil')
+        .update({ nome, papel, ativo }).eq('id', perfilId);
+      if (error) throw new Error(error.message);
+    }
+
+    await salvarAlcance(perfilId, papel);
+
+    registrarAuditoria('perfil', perfilId, novo ? 'INSERIR' : 'ALTERAR');
+    document.getElementById('modal-usuario').hidden = true;
+    await carregarUsuarios();
+
+  } catch (e) {
+    mostrarAviso(aviso, e.message);
+  } finally {
+    botao.disabled = false;
+  }
+}
+
+async function salvarAlcance(perfilId, papel) {
+  await sb.from('usuario_municipio').delete().eq('perfil_id', perfilId);
+  await sb.from('usuario_unidade').delete().eq('perfil_id', perfilId);
+
+  if (['Administrador','Gestao'].includes(papel)) return;
+
+  const municipios = [...document.querySelectorAll('.chk-municipio:checked')].map(c => c.value);
+  const unidades   = [...document.querySelectorAll('.chk-unidade:checked:not(:disabled)')].map(c => c.value);
+
+  if (municipios.length)
+    await sb.from('usuario_municipio')
+      .insert(municipios.map(id => ({ perfil_id: perfilId, municipio_id: id })));
+
+  if (unidades.length)
+    await sb.from('usuario_unidade')
+      .insert(unidades.map(id => ({ perfil_id: perfilId, unidade_saude_id: id })));
+}
+
+async function excluirUsuario(id) {
+  const u = listaUsuarios.find(x => x.id === id);
+
+  if (id === Sessao.perfil.id)
+    return alert('Você não pode excluir o próprio acesso.');
+
+  if (!confirm(`Excluir o acesso de ${u.nome}? O histórico de auditoria é preservado, mas sem o nome.`))
+    return;
+
+  // A conta em auth.users continua existindo — apagá-la exige a
+  // chave service_role, que não pode viver no navegador. Sem perfil,
+  // porém, o login não passa da tela de entrada.
+  const { error } = await sb.from('perfil').delete().eq('id', id);
+  if (error) return alert('Não foi possível excluir: ' + error.message);
+
+  registrarAuditoria('perfil', id, 'EXCLUIR', { nome: u.nome, email: u.email });
+  await carregarUsuarios();
+}
+
+/* =============================================================
+   MATRIZ DE PERMISSÕES
+   ============================================================= */
 
 async function carregarMatrizPermissoes() {
   const alvo = document.getElementById('area-matriz');
@@ -274,15 +604,11 @@ async function carregarMatrizPermissoes() {
   ]);
 
   padroesPapel = {};
-  (padroes.data || []).forEach(p => {
-    (padroesPapel[p.papel] ||= {})[p.chave] = p.permitido;
-  });
+  (padroes.data || []).forEach(p => { (padroesPapel[p.papel] ||= {})[p.chave] = p.permitido; });
 
   desenharMatriz(alvo, cat.data || [], null);
 }
 
-// modoUsuario null = editando o padrão dos papéis.
-// modoUsuario = perfil → editando as exceções de uma pessoa.
 function desenharMatriz(alvo, catalogo, modoUsuario, sobrescritas = {}) {
   if (!catalogo.length) {
     alvo.innerHTML = '<div class="vazio">Nenhuma parametrização registrada ainda.</div>';
@@ -293,8 +619,7 @@ function desenharMatriz(alvo, catalogo, modoUsuario, sobrescritas = {}) {
     ? [{ codigo: modoUsuario.papel, rotulo: 'Permitido' }]
     : Sessao.papeis;
 
-  let html = '<div class="matriz-rolagem"><table class="matriz"><thead><tr>';
-  html += '<th>Parametrização</th>';
+  let html = '<div class="matriz-rolagem"><table class="matriz"><thead><tr><th>Parametrização</th>';
   colunas.forEach(c => html += `<th>${escapar(c.rotulo)}</th>`);
   html += '</tr></thead><tbody>';
 
@@ -305,11 +630,9 @@ function desenharMatriz(alvo, catalogo, modoUsuario, sobrescritas = {}) {
       html += `<tr class="grupo"><td colspan="${colunas.length + 1}">${escapar(moduloAtual)}</td></tr>`;
     }
 
-    html += '<tr>';
-    html += `<td>
+    html += `<tr><td>
       <span class="rotulo-perm">${escapar(perm.rotulo)}</span>
-      <span class="chave-perm">${escapar(perm.chave)}</span>
-    </td>`;
+      <span class="chave-perm">${escapar(perm.chave)}</span></td>`;
 
     colunas.forEach(col => {
       if (modoUsuario) {
@@ -317,40 +640,33 @@ function desenharMatriz(alvo, catalogo, modoUsuario, sobrescritas = {}) {
         const temSobrescrita = perm.chave in sobrescritas;
         const marcado = temSobrescrita ? sobrescritas[perm.chave] : herdado;
         html += `<td class="${temSobrescrita ? 'sobrescrito' : ''}"
-                     title="${temSobrescrita ? 'Exceção individual' : 'Herdado do papel'}">
+          title="${temSobrescrita ? 'Exceção individual' : 'Herdado do papel'}">
           <input type="checkbox" ${marcado ? 'checked' : ''}
-                 onchange="alterarPermissaoUsuario('${perm.chave}', this)">
-        </td>`;
+                 onchange="alterarPermissaoUsuario('${perm.chave}', this)"></td>`;
       } else {
         const marcado = padroesPapel[col.codigo]?.[perm.chave] === true;
-        const bloqueado = col.codigo === 'Administrador' && perm.chave.startsWith('config.permissoes');
-        html += `<td>
-          <input type="checkbox" ${marcado ? 'checked' : ''} ${bloqueado ? 'disabled' : ''}
-                 title="${bloqueado ? 'O Administrador não pode perder o controle de permissões' : ''}"
-                 onchange="alterarPadraoPapel('${col.codigo}', '${perm.chave}', this)">
-        </td>`;
+        const travado = col.codigo === 'Administrador' && perm.chave.startsWith('config.permissoes');
+        html += `<td><input type="checkbox" ${marcado ? 'checked' : ''} ${travado ? 'disabled' : ''}
+          title="${travado ? 'O Administrador não pode perder o controle de permissões' : ''}"
+          onchange="alterarPadraoPapel('${col.codigo}', '${perm.chave}', this)"></td>`;
       }
     });
     html += '</tr>';
   });
 
-  html += '</tbody></table></div>';
-  alvo.innerHTML = html;
+  alvo.innerHTML = html + '</tbody></table></div>';
 }
 
 async function alterarPadraoPapel(papel, chave, caixa) {
   const valor = caixa.checked;
   const { error } = await sb.from('permissao_papel')
-    .update({ permitido: valor })
-    .eq('papel', papel).eq('chave', chave);
+    .update({ permitido: valor }).eq('papel', papel).eq('chave', chave);
 
-  if (error) {
-    caixa.checked = !valor;
-    return alert('Não foi possível alterar: ' + error.message);
-  }
+  if (error) { caixa.checked = !valor; return alert('Não foi possível alterar: ' + error.message); }
+
   (padroesPapel[papel] ||= {})[chave] = valor;
   registrarAuditoria('permissao_papel', `${papel}/${chave}`, 'ALTERAR', { permitido: valor });
-  if (papel === Sessao.perfil.papel) await carregarPermissoes();
+  if (papel === Sessao.perfil.papel) { await carregarPermissoes(); aplicarPermissoesNaTela(); }
 }
 
 async function abrirPermissoesDoUsuario(id) {
@@ -361,8 +677,7 @@ async function abrirPermissoesDoUsuario(id) {
   irParaSubAba('permissoes');
   document.getElementById('titulo-matriz').textContent = 'Permissões de ' + u.nome;
   document.getElementById('legenda-matriz').textContent =
-    'Cada item começa herdando o padrão do papel ' + u.papel +
-    '. Marcar ou desmarcar aqui cria uma exceção só para esta pessoa.';
+    `Cada item começa herdando o padrão do papel ${u.papel}. Marcar ou desmarcar aqui cria uma exceção só para esta pessoa.`;
   document.getElementById('voltar-padroes').hidden = false;
 
   const [cat, sobre] = await Promise.all([
@@ -380,8 +695,6 @@ async function alterarPermissaoUsuario(chave, caixa) {
   const herdado = padroesPapel[usuarioSelecionado.papel]?.[chave] === true;
   const celula = caixa.closest('td');
 
-  // Voltou a coincidir com o papel: some a exceção em vez de gravar
-  // uma linha que só repete o padrão.
   if (valor === herdado) {
     await sb.from('permissao_usuario').delete()
       .eq('perfil_id', usuarioSelecionado.id).eq('chave', chave);
@@ -389,23 +702,16 @@ async function alterarPermissaoUsuario(chave, caixa) {
     celula.title = 'Herdado do papel';
   } else {
     const { error } = await sb.from('permissao_usuario').upsert({
-      perfil_id: usuarioSelecionado.id,
-      chave,
-      permitido: valor,
-      definido_por: Sessao.perfil.id,
-      definido_em: new Date().toISOString()
+      perfil_id: usuarioSelecionado.id, chave, permitido: valor,
+      definido_por: Sessao.perfil.id, definido_em: new Date().toISOString()
     });
-    if (error) {
-      caixa.checked = !valor;
-      return alert('Não foi possível alterar: ' + error.message);
-    }
+    if (error) { caixa.checked = !valor; return alert('Não foi possível alterar: ' + error.message); }
     celula.classList.add('sobrescrito');
     celula.title = 'Exceção individual';
   }
 
-  registrarAuditoria('permissao_usuario', `${usuarioSelecionado.id}/${chave}`, 'ALTERAR',
-    { permitido: valor });
-  if (usuarioSelecionado.id === Sessao.perfil.id) await carregarPermissoes();
+  registrarAuditoria('permissao_usuario', `${usuarioSelecionado.id}/${chave}`, 'ALTERAR', { permitido: valor });
+  if (usuarioSelecionado.id === Sessao.perfil.id) { await carregarPermissoes(); aplicarPermissoesNaTela(); }
 }
 
 function voltarParaPadroes() {
@@ -416,3 +722,40 @@ function voltarParaPadroes() {
   usuarioSelecionado = null;
   carregarMatrizPermissoes();
 }
+
+/* =============================================================
+   PEDAÇOS DE TELA REUTILIZADOS
+   ============================================================= */
+
+function linhaCarregando(colunas) {
+  return `<tr><td colspan="${colunas + 1}" class="vazio">Carregando…</td></tr>`;
+}
+
+function linhaVazia(colunas, texto) {
+  return `<tr><td colspan="${colunas + 1}" class="vazio">${escapar(texto)}</td></tr>`;
+}
+
+function celulaComLogo(logo, titulo, subtitulo) {
+  return `<div class="celula-logo">
+    ${logo ? `<img src="${logo}" alt="">` : '<span class="sem-logo"></span>'}
+    <div><strong>${escapar(titulo)}</strong>
+    ${subtitulo ? `<br><span class="dado sub-linha">${escapar(subtitulo)}</span>` : ''}</div>
+  </div>`;
+}
+
+function botoesAcao(entidade, id, comPermissoes) {
+  const nome = maiuscula(entidade);
+  return `
+    <button class="icone" title="Editar" aria-label="Editar"
+            data-permissao="config.${entidade}s.editar" onclick="abrir${nome}('${id}')">
+      ${ICONES.lapis}</button>
+    ${comPermissoes ? `
+    <button class="icone" title="Permissões" aria-label="Permissões"
+            data-permissao="config.permissoes.editar" onclick="abrirPermissoesDoUsuario('${id}')">
+      ${ICONES.engrenagem}</button>` : ''}
+    <button class="icone perigo" title="Excluir" aria-label="Excluir"
+            data-permissao="config.${entidade}s.excluir" onclick="excluir${nome}('${id}')">
+      ${ICONES.lixo}</button>`;
+}
+
+function maiuscula(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
