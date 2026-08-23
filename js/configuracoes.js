@@ -348,6 +348,16 @@ async function buscarCnpjMunicipio() {
     preencherSeVazio('mun-email', d.email);
     preencherSeVazio('mun-telefone', d.telefone);
     preencherSeVazio('mun-prefeito', d.responsavel);
+    preencherSeVazio('mun-razao-social', d.razao_social);
+    preencherSeVazio('mun-nome-fantasia', d.nome_fantasia);
+    preencherSeVazio('mun-natureza-juridica', d.natureza);
+    preencherSeVazio('mun-data-abertura', d.data_abertura);
+    preencherSeVazio('mun-situacao', d.situacao);
+    preencherSeVazio('mun-cep', d.cep);
+    preencherSeVazio('mun-logradouro', d.logradouro);
+    preencherSeVazio('mun-numero', d.numero);
+    preencherSeVazio('mun-complemento', d.complemento);
+    preencherSeVazio('mun-bairro', d.bairro);
 
     if (!aviso.hidden) return;
     mostrarAviso(aviso, 'Dados preenchidos pela Receita Federal. Confira antes de salvar.', 'ok');
@@ -405,7 +415,17 @@ async function salvarMunicipio() {
     prefeito:         document.getElementById('mun-prefeito').value.trim(),
     secretaria_saude: document.getElementById('mun-secretaria-saude').value.trim(),
     email:            document.getElementById('mun-email').value.trim(),
-    telefone:         document.getElementById('mun-telefone').value.trim()
+    telefone:         document.getElementById('mun-telefone').value.trim(),
+    razao_social:      document.getElementById('mun-razao-social').value.trim(),
+    nome_fantasia:     document.getElementById('mun-nome-fantasia').value.trim(),
+    natureza_juridica: document.getElementById('mun-natureza-juridica').value.trim(),
+    data_abertura:     document.getElementById('mun-data-abertura').value || null,
+    situacao:          document.getElementById('mun-situacao').value.trim(),
+    cep:               document.getElementById('mun-cep').value.trim(),
+    logradouro:        document.getElementById('mun-logradouro').value.trim(),
+    numero:            document.getElementById('mun-numero').value.trim(),
+    complemento:       document.getElementById('mun-complemento').value.trim(),
+    bairro:            document.getElementById('mun-bairro').value.trim()
   };
 
   const logo = valorLogoParaSalvar('previa-logo-mun');
