@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="css/estilos.css?v=0.6.2">
+<link rel="stylesheet" href="css/estilos.css?v=0.7.0">
 </head>
 <body>
 
@@ -458,7 +458,10 @@
         </div>
         <div class="campo">
           <label for="uni-cnes">CNES</label>
-          <input type="text" id="uni-cnes" class="mono">
+          <div style="display:flex;gap:8px">
+            <input type="text" id="uni-cnes" class="mono" style="flex:1">
+            <button type="button" class="botao neutro" id="buscar-cnes">Buscar</button>
+          </div>
         </div>
         <div class="campo">
           <label for="uni-responsavel">Responsável técnico</label>
@@ -565,12 +568,12 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/config.js?v=0.6.2"></script>
-<script src="js/api.js?v=0.6.2"></script>
-<script src="js/autenticacao.js?v=0.6.2"></script>
-<script src="js/municipios-ce.js?v=0.6.2"></script>
-<script src="js/cadastros-util.js?v=0.6.2"></script>
-<script src="js/configuracoes.js?v=0.6.2"></script>
-<script src="js/app.js?v=0.6.2"></script>
+<script src="js/config.js?v=0.7.0"></script>
+<script src="js/api.js?v=0.7.0"></script>
+<script src="js/autenticacao.js?v=0.7.0"></script>
+<script src="js/municipios-ce.js?v=0.7.0"></script>
+<script src="js/cadastros-util.js?v=0.7.0"></script>
+<script src="js/configuracoes.js?v=0.7.0"></script>
+<script src="js/app.js?v=0.7.0"></script>
 </body>
 </html>

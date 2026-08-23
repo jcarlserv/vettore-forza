@@ -244,3 +244,72 @@ document.addEventListener('DOMContentLoaded', () => {
     ibge.placeholder = 'Opcional';
   }
 });
+
+
+/* =============================================================
+   Busca de unidade pelo CNES
+   -------------------------------------------------------------
+   Passa pela Edge Function porque o CNES bloqueia chamada direta
+   do navegador. Preenche só o que estiver vazio.
+   ============================================================= */
+
+async function _vBuscarPorCnes() {
+  const campo = id => document.getElementById(id);
+  const aviso = campo('aviso-unidade');
+  const botao = campo('buscar-cnes');
+
+  const cnes = (campo('uni-cnes').value || '').replace(/\D/g, '');
+  if (!cnes) {
+    mostrarAviso(aviso, 'Digite o código CNES.');
+    return;
+  }
+
+  limparAviso(aviso);
+  botao.disabled = true;
+  botao.textContent = 'Buscando…';
+
+  try {
+    const r = await fetch(
+      `${CONFIG.SUPABASE_URL}/functions/v1/cnes?cnes=${cnes}`,
+      { headers: { Authorization: 'Bearer ' + CONFIG.SUPABASE_ANON } }
+    );
+
+    const json = await r.json();
+    console.log('[Vettore] CNES:', json);
+
+    if (!r.ok || json.erro) {
+      throw new Error(json.erro || 'A consulta ao CNES não respondeu.');
+    }
+
+    const d = json.dados;
+    const porFora = (idCampo, valor) => {
+      const el = campo(idCampo);
+      if (el && valor && !el.value) el.value = valor;
+    };
+
+    porFora('uni-nome',        d.nome);
+    porFora('uni-cnpj',        d.cnpj);
+    porFora('uni-responsavel', d.responsavel);
+    porFora('uni-email',       d.email);
+    porFora('uni-telefone',    d.telefone);
+    porFora('uni-cep',         d.cep);
+    porFora('uni-logradouro',  d.logradouro);
+    porFora('uni-numero',      d.numero);
+    porFora('uni-complemento', d.complemento);
+    porFora('uni-bairro',      d.bairro);
+
+    mostrarAviso(aviso, `Dados do CNES (${json.fonte}). Confira antes de salvar.`, 'ok');
+
+  } catch (e) {
+    mostrarAviso(aviso, e.message);
+    console.error('[Vettore] Falha no CNES:', e);
+  } finally {
+    botao.disabled = false;
+    botao.textContent = 'Buscar';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const b = document.getElementById('buscar-cnes');
+  if (b) b.addEventListener('click', _vBuscarPorCnes);
+});
