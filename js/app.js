@@ -62,7 +62,12 @@ async function iniciar() {
   document.getElementById('novo-municipio').addEventListener('click', () => abrirMunicipio(null));
   document.getElementById('salvar-municipio').addEventListener('click', salvarMunicipio);
   ligarCampoLogo('arquivo-logo-mun', 'previa-logo-mun', 'aviso-municipio', 'remover-logo-mun');
-  aplicarMascara(document.getElementById('mun-cnpj'), mascaraCnpj);
+  aplicarMascara(document.getElementById('mun-cep'), mascaraCep);
+  ligarBuscaCnpj('mun-cnpj', 'buscar-cnpj-mun', 'aviso-municipio', {
+    razao_social: 'mun-razao-social', email: 'mun-email', telefone: 'mun-telefone',
+    cep: 'mun-cep', logradouro: 'mun-logradouro', numero: 'mun-numero',
+    complemento: 'mun-complemento', bairro: 'mun-bairro'
+  });
   document.getElementById('mun-uf').addEventListener('change', e => {
     if (e.target.value) carregarListaMunicipios(e.target.value, null);
   });

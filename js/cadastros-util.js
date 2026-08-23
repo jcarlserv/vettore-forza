@@ -55,7 +55,13 @@ async function consultarCnpj(cnpj) {
     uf:             d.uf || '',
     telefone:       d.ddd_telefone_1 || '',
     email:          d.email || '',
-    situacao:       d.descricao_situacao_cadastral || ''
+    situacao:       d.descricao_situacao_cadastral || '',
+
+    // Quadro de responsáveis. Em prefeitura costuma trazer o
+    // prefeito como administrador — quando a Receita tem o dado
+    // atualizado, o que nem sempre acontece.
+    responsavel:    (d.qsa || [])[0]?.nome_socio || '',
+    qsa:            d.qsa || []
   };
 }
 

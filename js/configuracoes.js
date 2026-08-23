@@ -257,7 +257,8 @@ function abrirMunicipio(id) {
       `<option value="${sigla}" ${sigla === m.uf ? 'selected' : ''}>${nome} (${sigla})</option>`
     ).join('');
 
-  ['codigo-ibge','cnpj','prefeito','secretaria-saude','email','telefone'].forEach(c => {
+  ['codigo-ibge','cnpj','razao-social','prefeito','secretaria-saude','email','telefone',
+   'cep','logradouro','numero','complemento','bairro'].forEach(c => {
     const el = document.getElementById('mun-' + c);
     if (el) el.value = m[c.replace(/-/g, '_')] || '';
   });
@@ -338,6 +339,12 @@ async function salvarMunicipio() {
     nome, uf,
     codigo_ibge:      document.getElementById('mun-codigo-ibge').value.trim(),
     cnpj:             document.getElementById('mun-cnpj').value.trim(),
+    razao_social:     document.getElementById('mun-razao-social').value.trim(),
+    cep:              document.getElementById('mun-cep').value.trim(),
+    logradouro:       document.getElementById('mun-logradouro').value.trim(),
+    numero:           document.getElementById('mun-numero').value.trim(),
+    complemento:      document.getElementById('mun-complemento').value.trim(),
+    bairro:           document.getElementById('mun-bairro').value.trim(),
     prefeito:         document.getElementById('mun-prefeito').value.trim(),
     secretaria_saude: document.getElementById('mun-secretaria-saude').value.trim(),
     email:            document.getElementById('mun-email').value.trim(),

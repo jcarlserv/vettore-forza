@@ -319,6 +319,14 @@
     <div class="corpo">
       <div id="aviso-municipio" class="aviso" hidden></div>
 
+      <div class="linha-cnpj" style="margin-bottom:14px">
+        <div class="campo" style="margin:0;flex:1">
+          <label for="mun-cnpj">CNPJ da prefeitura</label>
+          <input type="text" id="mun-cnpj" class="mono" placeholder="00.000.000/0001-00">
+        </div>
+        <button type="button" class="botao neutro" id="buscar-cnpj-mun">Buscar dados</button>
+      </div>
+
       <div class="grade-2">
         <div class="campo">
           <label for="mun-uf">Estado</label>
@@ -332,10 +340,7 @@
           <label for="mun-codigo-ibge">Código IBGE</label>
           <input type="text" id="mun-codigo-ibge" class="mono" readonly>
         </div>
-        <div class="campo">
-          <label for="mun-cnpj">CNPJ da prefeitura</label>
-          <input type="text" id="mun-cnpj" class="mono">
-        </div>
+
         <div class="campo">
           <label for="mun-prefeito">Prefeito(a)</label>
           <input type="text" id="mun-prefeito">
@@ -351,6 +356,36 @@
         <div class="campo">
           <label for="mun-telefone">Telefone</label>
           <input type="text" id="mun-telefone" class="mono">
+        </div>
+      </div>
+
+      <div class="campo">
+        <label for="mun-razao-social">Razão social da prefeitura</label>
+        <input type="text" id="mun-razao-social">
+      </div>
+
+      <div class="divisor-secao"><span>Endereço da prefeitura</span></div>
+
+      <div class="grade-endereco">
+        <div class="campo cep">
+          <label for="mun-cep">CEP</label>
+          <input type="text" id="mun-cep" class="mono">
+        </div>
+        <div class="campo logradouro">
+          <label for="mun-logradouro">Logradouro</label>
+          <input type="text" id="mun-logradouro">
+        </div>
+        <div class="campo numero">
+          <label for="mun-numero">Número</label>
+          <input type="text" id="mun-numero">
+        </div>
+        <div class="campo">
+          <label for="mun-complemento">Complemento</label>
+          <input type="text" id="mun-complemento">
+        </div>
+        <div class="campo">
+          <label for="mun-bairro">Bairro</label>
+          <input type="text" id="mun-bairro">
         </div>
       </div>
 
