@@ -312,6 +312,63 @@ async function carregarListaMunicipios(uf, selecionado) {
   }
 }
 
+// A busca do município não usa o ligarBuscaCnpj genérico: aqui os
+// dois primeiros campos são selects encadeados. É preciso escolher a
+// UF, esperar a lista do IBGE carregar e só então marcar o município.
+// A Receita devolve o nome em caixa alta e às vezes sem acento, então
+// a comparação ignora acento e caixa.
+async function buscarCnpjMunicipio() {
+  const aviso = document.getElementById('aviso-municipio');
+  const botao = document.getElementById('buscar-cnpj-mun');
+  limparAviso(aviso);
+  botao.disabled = true;
+  botao.textContent = 'Buscando…';
+
+  try {
+    const d = await consultarCnpj(document.getElementById('mun-cnpj').value);
+
+    if (d.uf) {
+      document.getElementById('mun-uf').value = d.uf;
+      await carregarListaMunicipios(d.uf, null);
+
+      if (d.cidade) {
+        const sel = document.getElementById('mun-nome');
+        const alvo = [...sel.options].find(o =>
+          o.value && normalizar(o.value) === normalizar(d.cidade));
+
+        if (alvo && alvo.disabled) {
+          mostrarAviso(aviso, `${alvo.value}/${d.uf} já está cadastrado.`);
+        } else if (alvo) {
+          sel.value = alvo.value;
+          preencherCodigoIbge();
+        }
+      }
+    }
+
+    preencherSeVazio('mun-email', d.email);
+    preencherSeVazio('mun-telefone', d.telefone);
+    preencherSeVazio('mun-prefeito', d.responsavel);
+
+    if (!aviso.hidden) return;
+    mostrarAviso(aviso, 'Dados preenchidos pela Receita Federal. Confira antes de salvar.', 'ok');
+
+  } catch (e) {
+    mostrarAviso(aviso, e.message);
+  } finally {
+    botao.disabled = false;
+    botao.textContent = 'Buscar dados';
+  }
+}
+
+function normalizar(t) {
+  return (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toUpperCase();
+}
+
+function preencherSeVazio(id, valor) {
+  const el = document.getElementById(id);
+  if (el && valor && !el.value) el.value = valor;
+}
+
 function preencherCodigoIbge() {
   const sel = document.getElementById('mun-nome');
   const op = sel.selectedOptions[0];
