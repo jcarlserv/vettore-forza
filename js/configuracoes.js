@@ -251,9 +251,6 @@ function abrirMunicipio(id) {
   document.getElementById('titulo-municipio').textContent =
     id ? 'Editar município' : 'Novo município';
 
-  document.getElementById('lista-ufs').innerHTML =
-    UFS.map(([sigla, nome]) => `<option value="${sigla}">${nome}</option>`).join('');
-
   ['uf','nome','codigo-ibge','cnpj','prefeito','secretaria-saude','email','telefone',
    'razao-social','nome-fantasia','natureza-juridica','data-abertura','situacao',
    'cep','logradouro','numero','complemento','bairro'].forEach(c => {
@@ -261,36 +258,9 @@ function abrirMunicipio(id) {
     if (el) el.value = m[c.replace(/-/g, '_')] || '';
   });
 
-  if (m.uf) sugerirMunicipios(m.uf);
-  else document.getElementById('lista-municipios').innerHTML = '';
-
   mostrarLogoExistente('previa-logo-mun', m.logo_data_url);
   limparAviso(document.getElementById('aviso-municipio'));
   document.getElementById('modal-municipio').hidden = false;
-}
-
-// Campo aberto: a pessoa digita o que quiser. A lista do IBGE entra
-// como sugestão do navegador, não como trava — municípios novos ou
-// grafias fora do padrão continuam aceitos.
-async function sugerirMunicipios(uf) {
-  const lista = document.getElementById('lista-municipios');
-  if (!uf || uf.length !== 2) { lista.innerHTML = ''; return; }
-
-  try {
-    const municipios = await municipiosDaUf(uf.toUpperCase());
-    const jaUsados = new Set(
-      listaMunicipios
-        .filter(x => x.uf === uf.toUpperCase() && x.id !== editandoMunicipio?.id)
-        .map(x => normalizar(x.nome))
-    );
-
-    lista.innerHTML = municipios
-      .filter(mun => !jaUsados.has(normalizar(mun.nome)))
-      .map(mun => `<option value="${escapar(mun.nome)}" data-ibge="${mun.codigo}"></option>`)
-      .join('');
-  } catch {
-    lista.innerHTML = '';
-  }
 }
 
 // Preenche o código IBGE quando o nome digitado bate com a lista.
@@ -322,12 +292,7 @@ async function buscarCnpjMunicipio() {
   try {
     const d = await consultarCnpj(document.getElementById('mun-cnpj').value);
 
-    if (d.uf) {
-      document.getElementById('mun-uf').value = d.uf;
-      await sugerirMunicipios(d.uf);
-    } else {
-      mostrarAviso(aviso, 'A Receita não devolveu a UF. Preencha estado e município à mão.');
-    }
+    if (d.uf) document.getElementById('mun-uf').value = d.uf;
 
     if (d.cidade) {
       // A Receita devolve em caixa alta; a grafia do IBGE é a que

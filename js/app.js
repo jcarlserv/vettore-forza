@@ -70,7 +70,6 @@ async function iniciar() {
   });
   document.getElementById('mun-uf').addEventListener('input', e => {
     e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2);
-    if (e.target.value.length === 2) sugerirMunicipios(e.target.value);
   });
   document.getElementById('mun-nome').addEventListener('change', preencherCodigoIbge);
 

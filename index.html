@@ -330,17 +330,15 @@
       <div class="grade-2">
         <div class="campo">
           <label for="mun-uf">Estado (UF)</label>
-          <input type="text" id="mun-uf" class="mono" maxlength="2" list="lista-ufs">
-          <datalist id="lista-ufs"></datalist>
+          <input type="text" id="mun-uf" class="mono" maxlength="2" placeholder="CE">
         </div>
         <div class="campo">
           <label for="mun-nome">Município</label>
-          <input type="text" id="mun-nome" list="lista-municipios">
-          <datalist id="lista-municipios"></datalist>
+          <input type="text" id="mun-nome" placeholder="Choró">
         </div>
         <div class="campo">
           <label for="mun-codigo-ibge">Código IBGE</label>
-          <input type="text" id="mun-codigo-ibge" class="mono" readonly>
+          <input type="text" id="mun-codigo-ibge" class="mono">
         </div>
 
         <div class="campo">
@@ -366,32 +364,26 @@
         <input type="text" id="mun-razao-social">
       </div>
 
-      <div class="divisor-secao"><span>Endereço da prefeitura</span></div>
-
-      <div class="grade-endereco">
-        <div class="campo cep">
-          <label for="mun-cep">CEP</label>
-          <input type="text" id="mun-cep" class="mono">
-        </div>
-        <div class="campo logradouro">
-          <label for="mun-logradouro">Logradouro</label>
-          <input type="text" id="mun-logradouro">
-        </div>
-        <div class="campo numero">
-          <label for="mun-numero">Número</label>
-          <input type="text" id="mun-numero">
+      <div class="grade-2">
+        <div class="campo">
+          <label for="mun-nome-fantasia">Nome fantasia</label>
+          <input type="text" id="mun-nome-fantasia">
         </div>
         <div class="campo">
-          <label for="mun-complemento">Complemento</label>
-          <input type="text" id="mun-complemento">
+          <label for="mun-natureza-juridica">Natureza jurídica</label>
+          <input type="text" id="mun-natureza-juridica">
         </div>
         <div class="campo">
-          <label for="mun-bairro">Bairro</label>
-          <input type="text" id="mun-bairro">
+          <label for="mun-data-abertura">Data de abertura</label>
+          <input type="date" id="mun-data-abertura">
+        </div>
+        <div class="campo">
+          <label for="mun-situacao">Situação cadastral</label>
+          <input type="text" id="mun-situacao">
         </div>
       </div>
 
-      <div class="divisor-secao"><span>Endereço</span></div>
+      <div class="divisor-secao"><span>Endereço da prefeitura</span></div>
 
       <div class="grade-endereco">
         <div class="campo cep">
