@@ -337,17 +337,40 @@ create policy log_ler on log_auditoria
 -- -------------------------------------------------------------
 -- 9. PRIMEIRO ADMINISTRADOR
 -- -------------------------------------------------------------
--- Ovo e galinha: só um Administrador cria usuários, então o primeiro
--- nasce aqui, na mão.
+-- Ovo e galinha: só um Administrador cria usuários, então o
+-- primeiro nasce aqui.
 --
--- PASSO 1 — No painel do Supabase: Authentication > Users > Add user.
---           Crie com email e senha, marque "Auto Confirm User".
--- PASSO 2 — Copie o UUID que aparecer na lista.
--- PASSO 3 — Descomente e rode, trocando o UUID e os dados:
+-- PRÉ-REQUISITO — no painel do Supabase:
+--   Authentication > Users > Add user
+--   Email: jcarlservicos@gmail.com
+--   Marque "Auto Confirm User" (sem isso o login falha).
 --
--- insert into perfil (id, nome, email, papel)
--- values ('COLE-O-UUID-AQUI', 'Seu Nome', 'voce@dominio.com', 'Administrador')
--- on conflict (id) do update set papel = 'Administrador', ativo = true;
+-- O bloco abaixo acha o UUID sozinho pelo email, não precisa copiar
+-- nada. Se avisar "usuário não encontrado", a conta ainda não foi
+-- criada no painel ou o email está diferente.
+
+do $$
+declare
+  v_email text := 'jcarlservicos@gmail.com';
+  v_nome  text := 'João Carlos';
+  v_id    uuid;
+begin
+  select id into v_id from auth.users where email = v_email;
+
+  if v_id is null then
+    raise warning 'Usuário % não encontrado em auth.users. Crie a conta em Authentication > Users e rode este script de novo.', v_email;
+    return;
+  end if;
+
+  insert into perfil (id, nome, email, papel)
+  values (v_id, v_nome, v_email, 'Administrador')
+  on conflict (id) do update
+    set papel = 'Administrador',
+        ativo = true,
+        nome  = excluded.nome;
+
+  raise notice 'Administrador liberado: %', v_email;
+end $$;
 
 
 -- -------------------------------------------------------------

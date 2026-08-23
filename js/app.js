@@ -22,8 +22,10 @@ function montarInicio() {
 }
 
 async function iniciar() {
-  document.getElementById('rodape-versao').textContent =
-    CONFIG.PRODUTO + ' · ' + CONFIG.MODULO + ' · ' + CONFIG.VERSAO;
+  // Assinatura da base, no padrão dos sistemas irmãos:
+  // "Vettore v0.1.1•Desenvolvido por JCARLSERV"
+  const assinatura = `${CONFIG.PRODUTO} ${CONFIG.VERSAO}•Desenvolvido por ${CONFIG.DESENVOLVEDOR}`;
+  document.querySelectorAll('.assinatura').forEach(el => el.textContent = assinatura);
 
   // Catálogo de papéis é usado em vários lugares; carrega uma vez.
   const { data } = await sb.from('papel').select('*').eq('ativo', true).order('nivel');

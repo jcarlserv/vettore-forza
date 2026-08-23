@@ -1,18 +1,29 @@
 /* =============================================================
-   config.js — v0.1.0
+   config.js — v0.1.1
    Credenciais e constantes do projeto.
-   A chave anon é pública por natureza (vai no navegador de qualquer
-   jeito). Quem protege o dado aqui é o RLS do Postgres, não o segredo
-   desta chave. A chave service_role NUNCA entra neste arquivo.
+
+   A chave abaixo é a publishable (anon). Ela É pública por desenho:
+   num site estático não existe onde escondê-la, e não precisa —
+   sozinha ela não abre nada, só identifica o projeto. Quem decide o
+   que cada requisição pode ler ou gravar é o RLS do Postgres.
+
+   Por isso o RLS deste projeto é restritivo de verdade: ele é a
+   única barreira real. Se alguma tabela ficar com USING (true),
+   esta chave passa a valer acesso livre ao dado.
+
+   A chave service_role NUNCA entra aqui nem em qualquer arquivo do
+   frontend. O lugar dela é nos secrets da Edge Function.
    ============================================================= */
 
 const CONFIG = {
   PRODUTO: 'Vettore',
   ASSINATURA: 'Tecnologia para Organizações Sociais de Saúde',
   MODULO: 'Prestação de Contas',
-  SUPABASE_URL:  'https://xaiqztvshgdwwxugjlow.supabase.co/rest/v1/',
+  DESENVOLVEDOR: 'JCARLSERV',
+  // Sem /rest/v1 no fim — a biblioteca acrescenta o caminho sozinha.
+  SUPABASE_URL:  'https://xaiqztvshgdwwxugjlow.supabase.co',
   SUPABASE_ANON: 'sb_publishable_5MdGLCMpnIs_nldAIlmHrA_73HjWVb1',
-  VERSAO: 'v0.1.0'
+  VERSAO: 'v0.1.1'
 };
 
 // Cores sugeridas na aba Identidade Visual.

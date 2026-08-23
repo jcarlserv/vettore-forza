@@ -75,10 +75,35 @@ async function tratarLogin(evento) {
   botao.textContent = 'Entrar';
 
   if (error) {
-    mostrarAviso(aviso, 'Email ou senha não conferem. Confira e tente de novo.');
+    mostrarAviso(aviso, explicarErroLogin(error));
+    console.error('[Vettore] Falha no login:', error);
     return;
   }
   await entrarComSessao(data.user);
+}
+
+// Cada causa tem um caminho de solução diferente. Uma mensagem única
+// para tudo economiza código e custa uma tarde de tentativa e erro.
+function explicarErroLogin(error) {
+  const msg = (error.message || '').toLowerCase();
+
+  if (msg.includes('invalid login') || msg.includes('invalid credentials'))
+    return 'Email ou senha não conferem. Confira e tente de novo.';
+
+  if (msg.includes('email not confirmed'))
+    return 'Esta conta ainda não foi confirmada. Um administrador precisa confirmá-la no painel de autenticação.';
+
+  if (msg.includes('failed to fetch') || msg.includes('networkerror'))
+    return 'Sem resposta do servidor. Verifique a conexão e o endereço configurado em config.js.';
+
+  if (msg.includes('invalid api key') || msg.includes('no api key') || error.status === 401)
+    return 'A chave de acesso do sistema não foi aceita. Confira a chave publishable em config.js.';
+
+  if (msg.includes('too many') || error.status === 429)
+    return 'Muitas tentativas seguidas. Espere alguns minutos antes de tentar de novo.';
+
+  return 'Não foi possível entrar: ' + (error.message || 'erro desconhecido') +
+         '. Detalhes no console do navegador.';
 }
 
 async function sair() {
