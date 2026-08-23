@@ -59,55 +59,111 @@ async function consultarCnpj(cnpj) {
   const d = await resposta.json();
   console.log('[Vettore] Resposta do CNPJ:', d);
 
-  // Nomes de campo variam entre provedores e entre versões da API.
-  // Aceitar as grafias conhecidas evita que só município e UF venham
-  // vazios enquanto o resto preenche.
-  const pegar = (...chaves) => {
-    for (const c of chaves) {
-      const v = c.split('.').reduce((o, k) => o?.[k], d);
-      if (v) return String(v);
-    }
-    return '';
-  };
-
   const dados = {
-    razao_social:   d.razao_social || '',
-    nome_fantasia:  d.nome_fantasia || '',
+    razao_social:   d.razao_social || d.nome_empresarial || '',
+    nome_fantasia:  d.nome_fantasia || d.titulo_estabelecimento || '',
     cep:            mascaraCep(d.cep || ''),
     logradouro:     [d.descricao_tipo_de_logradouro, d.logradouro].filter(Boolean).join(' '),
     numero:         d.numero || '',
     complemento:    d.complemento || '',
     bairro:         d.bairro || '',
-    cidade:         pegar('municipio', 'cidade', 'nome_municipio',
-                           'municipio.nome', 'estabelecimento.cidade.nome'),
-    uf:             pegar('uf', 'estado', 'sigla_uf',
-                           'estado.sigla', 'estabelecimento.estado.sigla')
-                      .toUpperCase().slice(0, 2),
     telefone:       d.ddd_telefone_1 || '',
     email:          d.email || '',
     situacao:       d.descricao_situacao_cadastral || '',
     natureza:       d.natureza_juridica || '',
     data_abertura:  d.data_inicio_atividade || '',
-
-    // Quadro de responsáveis. Em prefeitura costuma trazer o
-    // prefeito como administrador — quando a Receita tem o dado
-    // atualizado, o que nem sempre acontece.
     responsavel:    (d.qsa || [])[0]?.nome_socio || '',
-    qsa:            d.qsa || []
+    qsa:            d.qsa || [],
+    cidade:         '',
+    uf:             ''
   };
 
-  // Se município ou UF não vieram, o CEP resolve. O endereço da
-  // Receita e o do CEP são o mesmo lugar, então não há conflito.
+  // ---- Município e UF ----
+  // Estes dois nunca mais dependem de um nome de campo específico.
+  // Três tentativas, da mais confiável para a menos.
+
+  // 1) Varredura da resposta inteira, em qualquer profundidade.
+  const achado = varrerMunicipioUf(d);
+  dados.cidade = achado.cidade;
+  dados.uf     = achado.uf;
+
+  // 2) O CEP aponta para o mesmo endereço — serve de confirmação.
   if ((!dados.cidade || !dados.uf) && dados.cep) {
     const porCep = await consultarCep(dados.cep);
     if (porCep) {
       dados.cidade = dados.cidade || porCep.cidade;
       dados.uf     = dados.uf     || porCep.uf;
-      console.log('[Vettore] Município/UF obtidos pelo CEP:', porCep);
+      console.log('[Vettore] Município/UF vieram do CEP:', porCep);
     }
   }
 
+  // 3) Último recurso: o nome do município está dentro da razão
+  //    social de toda prefeitura ("MUNICIPIO DE CHORO").
+  if (!dados.cidade && dados.razao_social && dados.uf) {
+    const extraido = await extrairMunicipioDaRazao(dados.razao_social, dados.uf);
+    if (extraido) {
+      dados.cidade = extraido;
+      console.log('[Vettore] Município deduzido da razão social:', extraido);
+    }
+  }
+
+  console.log('[Vettore] Município/UF finais:', dados.cidade, dados.uf);
   return dados;
+}
+
+// Percorre o objeto todo procurando o que parece município e UF.
+// Ignora chaves de código numérico — "codigo_municipio" não é nome.
+function varrerMunicipioUf(objeto) {
+  let cidade = '', uf = '';
+
+  const visitar = (no) => {
+    if (!no || typeof no !== 'object') return;
+
+    for (const [chave, valor] of Object.entries(no)) {
+      const k = chave.toLowerCase();
+
+      if (valor && typeof valor === 'object') {
+        // {municipio: {nome: 'CHORO'}} e formatos parecidos
+        if (!cidade && /municipio|cidade|city/.test(k) && valor.nome)
+          cidade = String(valor.nome);
+        if (!uf && /uf|estado|state/.test(k) && (valor.sigla || valor.uf))
+          uf = String(valor.sigla || valor.uf);
+        visitar(valor);
+        continue;
+      }
+
+      if (typeof valor !== 'string' || !valor.trim()) continue;
+
+      if (!cidade && /municipio|cidade|city/.test(k) && !/codigo|cod_|_id|ibge/.test(k))
+        cidade = valor.trim();
+
+      if (!uf && /^uf$|_uf$|uf_|estado|sigla_uf|state/.test(k) &&
+          /^[A-Za-z]{2}$/.test(valor.trim()))
+        uf = valor.trim().toUpperCase();
+    }
+  };
+
+  visitar(objeto);
+  return { cidade, uf: uf.toUpperCase().slice(0, 2) };
+}
+
+// "MUNICIPIO DE CHORO" / "PREFEITURA MUNICIPAL DE CHORO" → Choró
+// Confere contra a lista do IBGE para devolver a grafia oficial.
+async function extrairMunicipioDaRazao(razao, uf) {
+  const limpo = razao
+    .replace(/^(municipio|município|prefeitura)\s+(municipal\s+)?(de\s+|do\s+|da\s+)?/i, '')
+    .trim();
+  if (!limpo) return '';
+
+  const semAcento = t => t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
+
+  try {
+    const lista = await municipiosDaUf(uf);
+    const igual = lista.find(m => semAcento(m.nome) === semAcento(limpo));
+    return igual ? igual.nome : limpo;
+  } catch {
+    return limpo;
+  }
 }
 
 // Liga o botão de busca a um conjunto de campos.

@@ -325,6 +325,8 @@ async function buscarCnpjMunicipio() {
     if (d.uf) {
       document.getElementById('mun-uf').value = d.uf;
       await sugerirMunicipios(d.uf);
+    } else {
+      mostrarAviso(aviso, 'A Receita não devolveu a UF. Preencha estado e município à mão.');
     }
 
     if (d.cidade) {
