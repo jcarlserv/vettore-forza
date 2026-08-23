@@ -311,33 +311,30 @@ async function buscarCnpjMunicipio() {
       }
     }
 
-    // Fonte 3: a razão social. Toda prefeitura carrega o nome do
-    // município nela — "MUNICIPIO DE CHORO" vira "CHORO".
-    if (!nome && d.razao_social) {
-      nome = d.razao_social
-        .replace(/^(munic[ií]pio|prefeitura|pref\.?)\s+/i, '')
-        .replace(/^(municipal\s+)/i, '')
-        .replace(/^(de\s+|do\s+|da\s+|dos\s+|das\s+)/i, '')
-        .trim();
+    // Fonte 3: a razão social, conferida contra a lista embutida.
+    // Não usa rede — funciona mesmo com todas as APIs fora do ar.
+    let codigo = '';
+    const daRazao = municipioPelaRazaoSocial(d.razao_social);
+    if (daRazao) {
+      nome   = nome || daRazao.nome;
+      uf     = uf   || daRazao.uf;
+      codigo = daRazao.codigo;
+    }
+
+    // Grafia oficial e código IBGE pela lista embutida.
+    const naLista = municipioCePorNome(nome);
+    if (naLista) {
+      nome = naLista.nome;
+      uf = uf || 'CE';
+      codigo = naLista.codigo;
     }
 
     document.getElementById('mun-uf').value   = uf;
     document.getElementById('mun-nome').value = nome;
-    console.log('[Vettore] Preenchido — UF:', uf, '| Município:', nome);
+    document.getElementById('mun-codigo-ibge').value = codigo;
+    console.log('[Vettore] Preenchido — UF:', uf, '| Município:', nome, '| IBGE:', codigo);
 
-    // Grafia oficial e código IBGE, quando a lista estiver disponível.
     if (uf && nome) {
-      try {
-        const achado = (await municipiosDaUf(uf))
-          .find(mun => normalizar(mun.nome) === normalizar(nome));
-        if (achado) {
-          document.getElementById('mun-nome').value = achado.nome;
-          document.getElementById('mun-codigo-ibge').value = achado.codigo;
-          nome = achado.nome;
-        }
-      } catch (e) {
-        console.warn('[Vettore] Código IBGE indisponível:', e.message);
-      }
 
       const repetido = listaMunicipios.some(x =>
         x.uf === uf && normalizar(x.nome) === normalizar(nome) &&
