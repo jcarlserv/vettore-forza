@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="css/estilos.css?v=0.7.0">
+<link rel="stylesheet" href="css/estilos.css?v=0.8.0">
 </head>
 <body>
 
@@ -84,11 +84,73 @@
 
   <main>
 
-    <!-- ---------- Início (em branco por enquanto) ---------- -->
-    <section class="secao" data-aba="inicio"></section>
+    <!-- ---------- Início ---------- -->
+    <section class="secao" data-aba="inicio">
+      <div class="cabecalho-secao">
+        <h2>Municípios</h2>
+        <p>Escolha um município para abrir a prestação de contas.</p>
+      </div>
+      <div class="grade-municipios" id="grade-municipios">
+        <div class="vazio">Carregando…</div>
+      </div>
+    </section>
 
+    <!-- ---------- Prestações ---------- -->
     <section class="secao" data-aba="prestacoes" hidden>
-      <div class="painel"><div class="vazio">Módulo em construção.</div></div>
+      <div class="cabecalho-secao linha-titulo">
+        <button class="botao neutro pequeno" id="pc-voltar" type="button">← Municípios</button>
+        <h2 id="pc-municipio-nome">—</h2>
+      </div>
+
+      <div class="painel">
+        <header>
+          <h3>1 · Dados da Prestação de Contas</h3>
+          <div class="espaco"></div>
+          <span class="tag" id="pc-status" hidden></span>
+        </header>
+        <div class="conteudo">
+          <div class="linha-pc">
+            <div class="campo campo-instituicao">
+              <label for="pc-instituicao">Instituição</label>
+              <select id="pc-instituicao"><option value="">Selecione…</option></select>
+            </div>
+            <div class="campo campo-mes">
+              <label for="pc-mes">Mês</label>
+              <select id="pc-mes"></select>
+            </div>
+            <div class="campo campo-ano">
+              <label for="pc-ano">Ano</label>
+              <input type="number" id="pc-ano" min="2000" max="2100">
+            </div>
+            <div class="campo campo-edital">
+              <label for="pc-edital">Edital</label>
+              <input type="text" id="pc-edital" placeholder="Opcional">
+            </div>
+            <div class="campo campo-contrato">
+              <label for="pc-contrato">Contrato</label>
+              <input type="text" id="pc-contrato" placeholder="Opcional">
+            </div>
+          </div>
+          <div id="pc-aviso" class="aviso" hidden></div>
+          <button class="botao" id="pc-salvar-cabecalho" data-permissao="prestacao.criar" type="button">Salvar</button>
+        </div>
+      </div>
+
+      <div id="pc-blocos" hidden>
+        <div class="painel">
+          <header><h3>2 · Dados da Organização</h3></header>
+          <div class="conteudo">
+            <div class="lista-documentos" id="pc-doc-organizacao"></div>
+          </div>
+        </div>
+
+        <div class="painel">
+          <header><h3>3 · Financeiro</h3></header>
+          <div class="conteudo">
+            <div class="lista-documentos" id="pc-doc-financeiro"></div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section class="secao" data-aba="fornecedores" hidden>
@@ -568,12 +630,13 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/config.js?v=0.7.0"></script>
-<script src="js/api.js?v=0.7.0"></script>
-<script src="js/autenticacao.js?v=0.7.0"></script>
-<script src="js/municipios-ce.js?v=0.7.0"></script>
-<script src="js/cadastros-util.js?v=0.7.0"></script>
-<script src="js/configuracoes.js?v=0.7.0"></script>
-<script src="js/app.js?v=0.7.0"></script>
+<script src="js/config.js?v=0.8.0"></script>
+<script src="js/api.js?v=0.8.0"></script>
+<script src="js/autenticacao.js?v=0.8.0"></script>
+<script src="js/municipios-ce.js?v=0.8.0"></script>
+<script src="js/cadastros-util.js?v=0.8.0"></script>
+<script src="js/configuracoes.js?v=0.8.0"></script>
+<script src="js/prestacoes.js?v=0.8.0"></script>
+<script src="js/app.js?v=0.8.0"></script>
 </body>
 </html>

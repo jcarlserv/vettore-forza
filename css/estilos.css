@@ -704,6 +704,86 @@ td.acoes { text-align: right; white-space: nowrap; }
   display: flex; justify-content: flex-end; gap: 8px;
 }
 
+/* ---------- Início: cards de município ---------- */
+
+.grade-municipios {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.cartao-municipio {
+  display: flex; flex-direction: column; gap: 4px;
+  text-align: left;
+  padding: 16px;
+  background: var(--papel-alto);
+  border: 1px solid var(--linha);
+  border-radius: var(--r);
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+.cartao-municipio:hover {
+  border-color: var(--marca-borda);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--marca) 12%, transparent);
+}
+.cartao-municipio .nome-municipio { font-size: 15px; font-weight: 600; }
+.cartao-municipio .uf-municipio {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 11px; letter-spacing: .08em; color: var(--tinta-40);
+}
+.cartao-municipio .qtd-unidades { font-size: 12px; color: var(--tinta-70); margin-top: 6px; }
+
+/* ---------- Prestações ---------- */
+
+.linha-titulo { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; }
+.linha-titulo h2 { margin: 0; }
+
+.linha-pc {
+  display: grid;
+  grid-template-columns: 1.6fr .9fr .7fr 1fr 1fr;
+  gap: 12px;
+  align-items: end;
+}
+.linha-pc .campo { margin-bottom: 0; }
+
+.lista-documentos { display: flex; flex-direction: column; }
+
+.linha-documento {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--linha);
+}
+.linha-documento:last-child { border-bottom: none; }
+.linha-documento .rotulo-documento { flex: 0 0 220px; font-size: 14px; font-weight: 500; }
+.linha-documento .arquivos-documento { flex: 1; display: flex; flex-wrap: wrap; gap: 6px; }
+.linha-documento .acoes-documento { flex-shrink: 0; }
+
+.chip-arquivo {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px;
+  background: var(--papel);
+  border: 1px solid var(--linha);
+  border-radius: 20px;
+  font-size: 12px;
+}
+.chip-arquivo a { color: var(--marca); text-decoration: none; }
+.chip-arquivo a:hover { text-decoration: underline; }
+.chip-arquivo .excluir-arquivo {
+  border: none; background: none; cursor: pointer;
+  color: var(--tinta-40); font-size: 14px; line-height: 1; padding: 0;
+}
+.chip-arquivo .excluir-arquivo:hover { color: var(--alerta); }
+
+.tag.rascunho { color: var(--tinta-70); }
+.tag.em-revisao {
+  color: color-mix(in srgb, var(--destaque) 75%, var(--tinta));
+  border-color: color-mix(in srgb, var(--destaque) 55%, white);
+  background: var(--destaque-suave);
+}
+.tag.concluido {
+  color: #fff; background: var(--marca); border-color: var(--marca);
+}
+
 /* ---------- Responsivo ---------- */
 
 @media (max-width: 767px) {
@@ -714,6 +794,9 @@ td.acoes { text-align: right; white-space: nowrap; }
   .grade-endereco .logradouro { grid-column: span 2; }
   .grade-endereco .numero, .grade-endereco .uf { grid-column: span 1; }
   .linha-cnpj { flex-direction: column; align-items: stretch; }
+  .linha-pc { grid-template-columns: 1fr; }
+  .linha-documento { flex-wrap: wrap; }
+  .linha-documento .rotulo-documento { flex-basis: 100%; }
   .bloco-logo { flex-direction: column; }
   table.lista th:nth-child(3), table.lista td:nth-child(3) { display: none; }
   main { padding: 18px 14px 60px; }

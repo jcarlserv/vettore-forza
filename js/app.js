@@ -1,5 +1,5 @@
 /* =============================================================
-   Vettore — app.js — v0.2.0
+   Vettore — app.js — v0.3.0
    Arranque, navegação entre abas e ligação dos eventos.
    ============================================================= */
 
@@ -10,6 +10,7 @@ function irParaAba(nome) {
     s.hidden = s.dataset.aba !== nome);
 
   if (nome === 'configuracoes') irParaSubAba(subAbaAtual);
+  if (nome === 'inicio' && typeof renderInicioMunicipios === 'function') renderInicioMunicipios();
 }
 
 async function iniciar() {

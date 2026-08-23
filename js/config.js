@@ -23,7 +23,7 @@ const CONFIG = {
   SUPABASE_URL:  'https://xaiqztvshgdwwxugjlow.supabase.co',
   SUPABASE_ANON: 'sb_publishable_5MdGLCMpnIs_nldAIlmHrA_73HjWVb1',
 
-  VERSAO: 'v0.7.0'
+  VERSAO: 'v0.8.0'
 };
 
 /* -------------------------------------------------------------
