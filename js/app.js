@@ -154,16 +154,19 @@ async function _vBuscarMunicipioPorCnpj() {
     // Sem município na resposta: tira da razão social.
     if (!nome) nome = _vMunicipioDaRazao(d.razao_social || d.nome_empresarial || '');
 
-    // Sem UF: o CEP resolve.
-    if ((!uf || !nome) && d.cep) {
+    // O CEP completa o que faltar e traz o código IBGE de brinde.
+    // Consulto sempre que houver CEP, não só quando falta algo.
+    let ibgeDoCep = '';
+    if (d.cep) {
       try {
-        const rc = await fetch('https://brasilapi.com.br/api/cep/v1/' +
+        const rc = await fetch('https://brasilapi.com.br/api/cep/v2/' +
                                String(d.cep).replace(/\D/g, ''));
         if (rc.ok) {
           const c = await rc.json();
           console.log('[Vettore] CEP:', c);
-          uf   = uf   || (c.state || '').toUpperCase();
-          nome = nome || (c.city  || '');
+          uf        = uf   || (c.state || '').toUpperCase();
+          nome      = nome || (c.city  || '');
+          ibgeDoCep = String(c.city_ibge || '');
         }
       } catch (e) {
         console.warn('[Vettore] CEP falhou:', e.message);
@@ -172,7 +175,13 @@ async function _vBuscarMunicipioPorCnpj() {
 
     campo('mun-uf').value   = uf;
     campo('mun-nome').value = nome;
-    console.log('[Vettore] Preenchido → UF:', uf, '| Município:', nome);
+
+    // Código IBGE continua editável — isto só poupa a digitação.
+    if (ibgeDoCep && !campo('mun-codigo-ibge').value)
+      campo('mun-codigo-ibge').value = ibgeDoCep;
+
+    console.log('[Vettore] Preenchido → UF:', uf, '| Município:', nome,
+                '| IBGE:', ibgeDoCep || '(em branco)');
 
     // Demais campos, sem sobrescrever o que já foi digitado.
     const porFora = (idCampo, valor) => {
