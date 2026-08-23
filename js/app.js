@@ -96,3 +96,142 @@ async function iniciar() {
 }
 
 document.addEventListener('DOMContentLoaded', iniciar);
+
+/* =============================================================
+   Preenchimento de Estado e Município no cadastro de município
+   -------------------------------------------------------------
+   Vive aqui, no último arquivo carregado, e sobrescreve o listener
+   anterior do botão. Não depende de nada de outro arquivo além do
+   fetch: se qualquer outro módulo estiver desatualizado, este bloco
+   ainda funciona.
+
+   Código IBGE não é preenchido automaticamente — é campo livre.
+   ============================================================= */
+
+function _vSemAcento(t) {
+  return (t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase().trim();
+}
+
+// Extrai o município da razão social da prefeitura.
+// "MUNICIPIO DE CHORO" → "CHORO"
+function _vMunicipioDaRazao(razao) {
+  if (!razao) return '';
+  return razao
+    .replace(/^\s*(munic[ií]pio|prefeitura|pref\.?)\s+/i, '')
+    .replace(/^\s*municipal\s+/i, '')
+    .replace(/^\s*(de|do|da|dos|das)\s+/i, '')
+    .trim();
+}
+
+async function _vBuscarMunicipioPorCnpj() {
+  const campo = id => document.getElementById(id);
+  const aviso = campo('aviso-municipio');
+  const botao = campo('buscar-cnpj-mun');
+
+  const cnpj = (campo('mun-cnpj').value || '').replace(/\D/g, '');
+  if (cnpj.length !== 14) {
+    mostrarAviso(aviso, 'Digite os 14 dígitos do CNPJ.');
+    return;
+  }
+
+  limparAviso(aviso);
+  botao.disabled = true;
+  botao.textContent = 'Buscando…';
+
+  try {
+    const r = await fetch('https://brasilapi.com.br/api/cnpj/v1/' + cnpj);
+    if (!r.ok) throw new Error('CNPJ não encontrado (HTTP ' + r.status + ').');
+
+    const d = await r.json();
+    console.log('[Vettore] CNPJ:', d);
+
+    // ---- UF ----
+    let uf = (d.uf || d.estado || '').toString().toUpperCase().slice(0, 2);
+
+    // ---- Município ----
+    let nome = (d.municipio || d.cidade || '').toString().trim();
+
+    // Sem município na resposta: tira da razão social.
+    if (!nome) nome = _vMunicipioDaRazao(d.razao_social || d.nome_empresarial || '');
+
+    // Sem UF: o CEP resolve.
+    if ((!uf || !nome) && d.cep) {
+      try {
+        const rc = await fetch('https://brasilapi.com.br/api/cep/v1/' +
+                               String(d.cep).replace(/\D/g, ''));
+        if (rc.ok) {
+          const c = await rc.json();
+          console.log('[Vettore] CEP:', c);
+          uf   = uf   || (c.state || '').toUpperCase();
+          nome = nome || (c.city  || '');
+        }
+      } catch (e) {
+        console.warn('[Vettore] CEP falhou:', e.message);
+      }
+    }
+
+    campo('mun-uf').value   = uf;
+    campo('mun-nome').value = nome;
+    console.log('[Vettore] Preenchido → UF:', uf, '| Município:', nome);
+
+    // Demais campos, sem sobrescrever o que já foi digitado.
+    const porFora = (idCampo, valor) => {
+      const el = campo(idCampo);
+      if (el && valor && !el.value) el.value = valor;
+    };
+
+    porFora('mun-razao-social',      d.razao_social || d.nome_empresarial);
+    porFora('mun-nome-fantasia',     d.nome_fantasia);
+    porFora('mun-natureza-juridica', d.natureza_juridica);
+    porFora('mun-data-abertura',     d.data_inicio_atividade);
+    porFora('mun-situacao',          d.descricao_situacao_cadastral);
+    porFora('mun-email',             d.email);
+    porFora('mun-telefone',          d.ddd_telefone_1);
+    porFora('mun-prefeito',          (d.qsa || [])[0]?.nome_socio);
+    porFora('mun-cep',               d.cep);
+    porFora('mun-logradouro',
+      [d.descricao_tipo_de_logradouro, d.logradouro].filter(Boolean).join(' '));
+    porFora('mun-numero',      d.numero);
+    porFora('mun-complemento', d.complemento);
+    porFora('mun-bairro',      d.bairro);
+
+    if (!uf || !nome) {
+      mostrarAviso(aviso, 'Dados preenchidos. Complete estado e município à mão.');
+    } else {
+      mostrarAviso(aviso,
+        'Dados preenchidos pela Receita Federal. Confira antes de salvar.', 'ok');
+    }
+
+  } catch (e) {
+    mostrarAviso(aviso, e.message);
+    console.error('[Vettore] Falha na busca:', e);
+  } finally {
+    botao.disabled = false;
+    botao.textContent = 'Buscar dados';
+  }
+}
+
+// Substitui o botão por um clone, o que descarta qualquer listener
+// registrado antes por outro arquivo, e liga só este.
+document.addEventListener('DOMContentLoaded', () => {
+  const antigo = document.getElementById('buscar-cnpj-mun');
+  if (!antigo) return;
+
+  const novo = antigo.cloneNode(true);
+  antigo.parentNode.replaceChild(novo, antigo);
+  novo.addEventListener('click', _vBuscarMunicipioPorCnpj);
+
+  const campoCnpj = document.getElementById('mun-cnpj');
+  if (campoCnpj) {
+    campoCnpj.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); _vBuscarMunicipioPorCnpj(); }
+    });
+  }
+
+  // Código IBGE: campo livre, sem preenchimento automático.
+  const ibge = document.getElementById('mun-codigo-ibge');
+  if (ibge) {
+    ibge.removeAttribute('readonly');
+    ibge.placeholder = 'Opcional';
+  }
+});
