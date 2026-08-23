@@ -40,8 +40,14 @@ async function consultarCep(cep) {
     const r = await fetch('https://brasilapi.com.br/api/cep/v2/' + numero);
     if (!r.ok) return null;
     const d = await r.json();
-    return { cidade: d.city || '', uf: (d.state || '').toUpperCase() };
-  } catch {
+    console.log('[Vettore] Resposta do CEP:', d);
+    return {
+      cidade: d.city || '',
+      uf: (d.state || '').toUpperCase(),
+      codigo_ibge: String(d.city_ibge || '')   // vem pronto, sem lista
+    };
+  } catch (e) {
+    console.warn('[Vettore] Falha ao consultar CEP:', e.message);
     return null;
   }
 }
@@ -75,7 +81,8 @@ async function consultarCnpj(cnpj) {
     responsavel:    (d.qsa || [])[0]?.nome_socio || '',
     qsa:            d.qsa || [],
     cidade:         '',
-    uf:             ''
+    uf:             '',
+    codigo_ibge:    ''
   };
 
   // ---- Município e UF ----
@@ -87,13 +94,14 @@ async function consultarCnpj(cnpj) {
   dados.cidade = achado.cidade;
   dados.uf     = achado.uf;
 
-  // 2) O CEP aponta para o mesmo endereço — serve de confirmação.
-  if ((!dados.cidade || !dados.uf) && dados.cep) {
+  // 2) O CEP aponta para o mesmo endereço e já traz o código IBGE
+  //    pronto — por isso consulto sempre, não só quando falta algo.
+  if (dados.cep) {
     const porCep = await consultarCep(dados.cep);
     if (porCep) {
-      dados.cidade = dados.cidade || porCep.cidade;
-      dados.uf     = dados.uf     || porCep.uf;
-      console.log('[Vettore] Município/UF vieram do CEP:', porCep);
+      dados.cidade      = dados.cidade || porCep.cidade;
+      dados.uf          = dados.uf     || porCep.uf;
+      dados.codigo_ibge = porCep.codigo_ibge;
     }
   }
 
@@ -107,7 +115,8 @@ async function consultarCnpj(cnpj) {
     }
   }
 
-  console.log('[Vettore] Município/UF finais:', dados.cidade, dados.uf);
+  console.log('[Vettore] Município/UF/IBGE finais:',
+              dados.cidade, dados.uf, dados.codigo_ibge);
   return dados;
 }
 

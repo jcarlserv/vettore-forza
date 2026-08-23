@@ -274,7 +274,10 @@ async function preencherCodigoIbge() {
     const achado = (await municipiosDaUf(uf))
       .find(mun => normalizar(mun.nome) === normalizar(nome));
     if (achado) campo.value = achado.codigo;
-  } catch { /* sem código IBGE é aceitável */ }
+    else console.warn('[Vettore] Município não encontrado na lista do IBGE:', nome, uf);
+  } catch (e) {
+    console.warn('[Vettore] Falha ao consultar o IBGE:', e.message);
+  }
 }
 
 // A busca do município não usa o ligarBuscaCnpj genérico: aqui os
@@ -305,7 +308,9 @@ async function buscarCnpjMunicipio() {
       } catch { /* mantém o nome da Receita */ }
 
       document.getElementById('mun-nome').value = nome;
-      await preencherCodigoIbge();
+
+      if (d.codigo_ibge) document.getElementById('mun-codigo-ibge').value = d.codigo_ibge;
+      else await preencherCodigoIbge();
 
       const repetido = listaMunicipios.some(x =>
         x.uf === d.uf && normalizar(x.nome) === normalizar(nome) &&
