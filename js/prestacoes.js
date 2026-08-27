@@ -13,6 +13,7 @@ const NOMES_MES = [
 
 const StatusRotulo = { Rascunho: 'Rascunho', Em_Revisao: 'Em revisão', Concluido: 'Concluído' };
 const StatusClasse = { Rascunho: 'rascunho', Em_Revisao: 'em-revisao', Concluido: 'concluido' };
+const ROTULO_BLOCO = { organizacao: 'Dados da Organização', financeiro: 'Financeiro' };
 
 // Contexto vivo da tela — um município, uma instituição, um mês.
 const ContextoPC = {
@@ -410,6 +411,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const botaoExcluir = e.target.closest('[data-excluir-id]');
     if (botaoExcluir) return excluirDocumento(botaoExcluir.dataset.excluirId, botaoExcluir.dataset.excluirCaminho);
     const botaoBaixar = e.target.closest('[data-baixar-bloco]');
-    if (botaoBaixar) baixarBloco(botaoBaixar.dataset.baixarBloco, botaoBaixar.closest('.painel').querySelector('h3').textContent.replace(/^\d+\s*·\s*/, ''));
+    if (botaoBaixar) baixarBloco(botaoBaixar.dataset.baixarBloco, ROTULO_BLOCO[botaoBaixar.dataset.baixarBloco] || botaoBaixar.dataset.baixarBloco);
   });
+  document.getElementById('pc-baixar-tudo')?.addEventListener('click', () => baixarTudo());
 });

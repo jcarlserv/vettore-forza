@@ -22,43 +22,15 @@ async function baixarBloco(nomeBloco, rotuloBloco) {
   try {
     if (!ContextoPC.prestacaoId) throw new Error('Salve a prestação antes de baixar.');
 
-    const [{ data: municipio }, { data: unidade }, { data: organizacao },
-           { data: capaMun }, { data: capaBloco }] = await Promise.all([
-      sb.from('municipio').select('*').eq('id', ContextoPC.municipioId).single(),
-      sb.from('unidade_saude').select('*').eq('id', ContextoPC.unidadeId).single(),
-      sb.from('organizacao').select('*').maybeSingle(),
-      sb.from('capa_municipio').select('*').eq('municipio_id', ContextoPC.municipioId).maybeSingle(),
-      sb.from('capa_bloco_titulo').select('*')
-        .eq('municipio_id', ContextoPC.municipioId).eq('bloco', nomeBloco).maybeSingle()
-    ]);
-
     const { PDFDocument, StandardFonts } = PDFLib;
     const pdfFinal = await PDFDocument.create();
-    const ctx = {
-      municipio, unidade, organizacao, capaMun,
-      mes: Number(document.getElementById('pc-mes').value),
-      ano: document.getElementById('pc-ano').value,
-      edital: document.getElementById('pc-edital').value,
-      fonteNormal: await pdfFinal.embedFont(StandardFonts.Helvetica),
-      fonteNegrito: await pdfFinal.embedFont(StandardFonts.HelveticaBold)
-    };
+    const ctx = await montarContexto(pdfFinal);
 
     await desenharCapaPrestacao(pdfFinal, ctx);
-    await desenharCapaBloco(pdfFinal, ctx, capaBloco?.titulo || rotuloBloco.toUpperCase());
-
-    const catalogo = await garantirCatalogoDocumentos();
-    const itens = catalogo.filter(c => c.bloco === nomeBloco);
-    const { data: arquivos } = await sb.from('prestacao_documento')
-      .select('*').eq('prestacao_id', ContextoPC.prestacaoId).order('enviado_em');
-
-    const ignorados = [];
-    for (const item of itens) {
-      const doItem = (arquivos || []).filter(a => a.chave === item.chave);
-      for (const a of doItem) await anexarArquivo(pdfFinal, a, ignorados);
-    }
+    const ignorados = await montarConteudoBloco(pdfFinal, ctx, nomeBloco, rotuloBloco);
 
     const bytes = await pdfFinal.save();
-    const nomeArquivo = `${rotuloBloco}_${municipio.nome}_${ctx.ano}-${String(ctx.mes).padStart(2, '0')}.pdf`
+    const nomeArquivo = `${rotuloBloco}_${ctx.municipio.nome}_${ctx.ano}-${String(ctx.mes).padStart(2, '0')}.pdf`
       .replace(/\s+/g, '_');
     baixarBytesComoArquivo(bytes, nomeArquivo);
 
@@ -72,6 +44,85 @@ async function baixarBloco(nomeBloco, rotuloBloco) {
     botao.disabled = false;
     botao.textContent = textoOriginal;
   }
+}
+
+async function baixarTudo() {
+  const botao = document.getElementById('pc-baixar-tudo');
+  const textoOriginal = botao.textContent;
+  botao.disabled = true;
+  botao.textContent = 'Preparando…';
+
+  try {
+    if (!ContextoPC.prestacaoId) throw new Error('Salve a prestação antes de baixar.');
+
+    const { PDFDocument } = PDFLib;
+    const pdfFinal = await PDFDocument.create();
+    const ctx = await montarContexto(pdfFinal);
+    await desenharCapaPrestacao(pdfFinal, ctx);
+
+    const catalogo = await garantirCatalogoDocumentos();
+    const blocos = [...new Set(catalogo.map(c => c.bloco))];
+
+    let ignorados = [];
+    for (const bloco of blocos) {
+      const dosIgnorados = await montarConteudoBloco(pdfFinal, ctx, bloco, ROTULO_BLOCO[bloco] || bloco);
+      ignorados = ignorados.concat(dosIgnorados);
+    }
+
+    const bytes = await pdfFinal.save();
+    const nomeArquivo = `PrestacaoDeContas_${ctx.municipio.nome}_${ctx.ano}-${String(ctx.mes).padStart(2, '0')}.pdf`
+      .replace(/\s+/g, '_');
+    baixarBytesComoArquivo(bytes, nomeArquivo);
+
+    if (ignorados.length) {
+      alert('Baixado. Alguns arquivos não puderam ser incluídos (formato não suportado): ' + ignorados.join(', '));
+    }
+  } catch (e) {
+    alert('Não foi possível gerar o PDF: ' + e.message);
+    console.error('[Vettore] baixarTudo:', e);
+  } finally {
+    botao.disabled = false;
+    botao.textContent = textoOriginal;
+  }
+}
+
+async function montarContexto(pdfFinal) {
+  const { StandardFonts } = PDFLib;
+  const [{ data: municipio }, { data: unidade }, { data: organizacao }, { data: capaMun }] = await Promise.all([
+    sb.from('municipio').select('*').eq('id', ContextoPC.municipioId).single(),
+    sb.from('unidade_saude').select('*').eq('id', ContextoPC.unidadeId).single(),
+    sb.from('organizacao').select('*').maybeSingle(),
+    sb.from('capa_municipio').select('*').eq('municipio_id', ContextoPC.municipioId).maybeSingle()
+  ]);
+  return {
+    municipio, unidade, organizacao, capaMun,
+    mes: Number(document.getElementById('pc-mes').value),
+    ano: document.getElementById('pc-ano').value,
+    edital: document.getElementById('pc-edital').value,
+    fonteNormal: await pdfFinal.embedFont(StandardFonts.Helvetica),
+    fonteNegrito: await pdfFinal.embedFont(StandardFonts.HelveticaBold)
+  };
+}
+
+// Desenha a capa do bloco + anexa os arquivos dele, na ordem do catálogo.
+// Devolve a lista de nomes que não puderam ser incluídos.
+async function montarConteudoBloco(pdfFinal, ctx, nomeBloco, rotuloBloco) {
+  const { data: capaBloco } = await sb.from('capa_bloco_titulo').select('*')
+    .eq('municipio_id', ContextoPC.municipioId).eq('bloco', nomeBloco).maybeSingle();
+
+  await desenharCapaBloco(pdfFinal, ctx, capaBloco?.titulo || rotuloBloco.toUpperCase());
+
+  const catalogo = await garantirCatalogoDocumentos();
+  const itens = catalogo.filter(c => c.bloco === nomeBloco);
+  const { data: arquivos } = await sb.from('prestacao_documento')
+    .select('*').eq('prestacao_id', ContextoPC.prestacaoId).order('enviado_em');
+
+  const ignorados = [];
+  for (const item of itens) {
+    const doItem = (arquivos || []).filter(a => a.chave === item.chave);
+    for (const a of doItem) await anexarArquivo(pdfFinal, a, ignorados);
+  }
+  return ignorados;
 }
 
 /* -------- Buscar e anexar cada arquivo -------- */
@@ -135,22 +186,22 @@ async function desenharCapaPrestacao(pdf, ctx) {
   centralizar(pagina, ctx.fonteNegrito, 'PRESTAÇÃO DE CONTAS', 24, 600);
   centralizar(pagina, ctx.fonteNegrito, `${ctx.municipio.nome.toUpperCase()} - ${ctx.municipio.uf}`, 20, 540);
   centralizar(pagina, ctx.fonteNormal,
-    ctx.capaMun?.subtitulo_prestacao || 'GESTÃO DOS SERVIÇOS DE SAÚDE MUNICIPAL', 11, 460);
-  if (ctx.edital) centralizar(pagina, ctx.fonteNormal, `EDITAL DE CHAMAMENTO PÚBLICO N° ${ctx.edital}`, 11, 442);
+    ctx.capaMun?.subtitulo_prestacao || 'GESTÃO DOS SERVIÇOS DE SAÚDE MUNICIPAL', 16, 460);
+  if (ctx.edital) centralizar(pagina, ctx.fonteNormal, `EDITAL DE CHAMAMENTO PÚBLICO N° ${ctx.edital}`, 16, 438);
   centralizar(pagina, ctx.fonteNormal, `${MESES_EXTENSO[ctx.mes - 1] || ''} - ${ctx.ano}`, 11, 140);
 
   pagina = pdf.addPage(A4);
   await desenharCabecalho(pdf, pagina, ctx);
   centralizar(pagina, ctx.fonteNegrito, `${ctx.municipio.nome.toUpperCase()} - ${ctx.municipio.uf}`, 20, 540);
   const texto = ctx.capaMun?.texto_organizacao || ctx.organizacao?.razao_social || '';
-  if (texto) quebrarLinhasCentralizado(pagina, ctx.fonteNegrito, texto, 13, 460, 420);
+  if (texto) quebrarLinhasCentralizado(pagina, ctx.fonteNegrito, texto, 16, 460, 420);
 }
 
 async function desenharCapaBloco(pdf, ctx, titulo) {
   const pagina = pdf.addPage(A4);
   await desenharCabecalho(pdf, pagina, ctx);
   centralizar(pagina, ctx.fonteNegrito, `${ctx.municipio.nome.toUpperCase()} - ${ctx.municipio.uf}`, 20, 540);
-  centralizar(pagina, ctx.fonteNegrito, titulo, 13, 460);
+  centralizar(pagina, ctx.fonteNegrito, titulo, 16, 460);
 }
 
 async function desenharCabecalho(pdf, pagina, ctx) {
@@ -161,7 +212,7 @@ async function desenharCabecalho(pdf, pagina, ctx) {
     { x: 140, y: 788, size: 9, font: ctx.fonteNormal });
 
   if (ctx.organizacao?.logo_data_url) await desenharLogo(pdf, pagina, ctx.organizacao.logo_data_url, 40, 780);
-  if (ctx.unidade?.logo_data_url)     await desenharLogo(pdf, pagina, ctx.unidade.logo_data_url, width - 90, 780);
+  if (ctx.municipio?.logo_data_url)   await desenharLogo(pdf, pagina, ctx.municipio.logo_data_url, width - 90, 780);
 }
 
 async function desenharLogo(pdf, pagina, dataUrl, x, y) {
