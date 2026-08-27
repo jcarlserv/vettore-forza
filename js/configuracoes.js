@@ -244,7 +244,7 @@ function contarUnidadesDo(municipioId) {
   return n ? `<span class="dado">${n}</span>` : '<span style="color:var(--tinta-40)">—</span>';
 }
 
-function abrirMunicipio(id) {
+async function abrirMunicipio(id) {
   editandoMunicipio = id ? listaMunicipios.find(m => m.id === id) : null;
   const m = editandoMunicipio || {};
 
