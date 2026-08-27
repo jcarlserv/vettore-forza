@@ -1,8 +1,9 @@
 /* =============================================================
-   Vettore — prestacoes.js — v0.8.0
+   Vettore — prestacoes.js — v0.10.0
    Início (cards de município) + tela da Prestação de Contas:
    Bloco 1 (cabeçalho), Bloco 2 (Dados da Organização) e
-   Bloco 3 (Financeiro), com upload para o Google Drive.
+   Bloco 3 (Financeiro), com upload para o Google Drive
+   (Drive Compartilhado do Workspace, via Edge Function).
    ============================================================= */
 
 const NOMES_MES = [
@@ -270,6 +271,16 @@ async function carregarDocumentos() {
 
   if (error) { console.error('[Vettore] prestacao_documento:', error); return; }
 
+  // Arquivos enviados na fase Supabase Storage (arquivo_url vazia, caminho com "/")
+  // ainda precisam de link assinado. Os do Google Drive já vêm com arquivo_url pronta.
+  const semUrl = (arquivos || []).filter(a => !a.arquivo_url && a.arquivo_drive_id?.includes('/'));
+  if (semUrl.length) {
+    const assinadas = await Promise.all(semUrl.map(a =>
+      sb.storage.from('prestacao-documentos').createSignedUrl(a.arquivo_drive_id, 3600)
+    ));
+    semUrl.forEach((a, i) => { a._urlAssinada = assinadas[i]?.data?.signedUrl || null; });
+  }
+
   const porChave = {};
   (arquivos || []).forEach(a => { (porChave[a.chave] = porChave[a.chave] || []).push(a); });
 
@@ -287,11 +298,15 @@ function renderBlocoDocumentos(nomeBloco, idContainer, catalogo, porChave) {
     const arquivos = porChave[item.chave] || [];
     const mostrarBotaoEnviar = podeEnviar && (item.multiplo || arquivos.length === 0);
 
-    const chips = arquivos.map(a => `
+    const chips = arquivos.map(a => {
+      const link = a.arquivo_url || a._urlAssinada;
+      return `
       <span class="chip-arquivo">
-        <a href="${escapar(a.arquivo_url)}" target="_blank" rel="noopener">${escapar(a.nome_arquivo)}</a>
-        ${podeExcluir ? `<button type="button" class="excluir-arquivo" data-excluir-id="${a.id}" title="Excluir">✕</button>` : ''}
-      </span>`).join('') || '<span class="sub-linha">Nenhum arquivo enviado.</span>';
+        ${link ? `<a href="${escapar(link)}" target="_blank" rel="noopener">${escapar(a.nome_arquivo)}</a>`
+               : `<span>${escapar(a.nome_arquivo)}</span>`}
+        ${podeExcluir ? `<button type="button" class="excluir-arquivo" data-excluir-id="${a.id}" data-excluir-caminho="${escapar(a.arquivo_drive_id || '')}" title="Excluir">✕</button>` : ''}
+      </span>`;
+    }).join('') || '<span class="sub-linha">Nenhum arquivo enviado.</span>';
 
     return `
       <div class="linha-documento" data-chave="${item.chave}">
@@ -348,8 +363,19 @@ async function enviarDocumento(inputEl) {
   }
 }
 
-async function excluirDocumento(id) {
-  if (!confirm('Excluir este arquivo da lista? O arquivo continua guardado no Drive.')) return;
+async function excluirDocumento(id, caminho) {
+  // Caminho com "/" = era Supabase Storage, apaga o arquivo de verdade.
+  // Sem "/" = era Google Drive (fileId), o arquivo fica lá como segurança.
+  const eraStorage = caminho && caminho.includes('/');
+  if (!confirm(eraStorage
+    ? 'Excluir este arquivo?'
+    : 'Excluir este arquivo da lista? O arquivo continua guardado no Drive.')) return;
+
+  if (eraStorage) {
+    const { error: erroStorage } = await sb.storage.from('prestacao-documentos').remove([caminho]);
+    if (erroStorage) console.error('[Vettore] remover do storage:', erroStorage);
+  }
+
   const { error } = await sb.from('prestacao_documento').delete().eq('id', id);
   if (error) {
     alert('Não foi possível excluir. Confira as permissões.');
@@ -382,6 +408,6 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   document.getElementById('pc-blocos')?.addEventListener('click', e => {
     const botao = e.target.closest('[data-excluir-id]');
-    if (botao) excluirDocumento(botao.dataset.excluirId);
+    if (botao) excluirDocumento(botao.dataset.excluirId, botao.dataset.excluirCaminho);
   });
 });

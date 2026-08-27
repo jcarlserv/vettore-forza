@@ -183,7 +183,10 @@ export default {
 
     try {
       const contaServicoTexto = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
-      const driveId = Deno.env.get("GOOGLE_DRIVE_ID");
+      const driveIdBruto = Deno.env.get("GOOGLE_DRIVE_ID");
+      // Aceita tanto o ID puro quanto o link inteiro do Drive Compartilhado
+      // (ex: colado direto da barra de endereço, com /folders/ID?usp=...).
+      const driveId = driveIdBruto?.match(/[-\w]{25,}/)?.[0] ?? driveIdBruto;
       if (!contaServicoTexto || !driveId) {
         throw new Error("Secrets do Google ausentes (GOOGLE_SERVICE_ACCOUNT_JSON / GOOGLE_DRIVE_ID).");
       }
