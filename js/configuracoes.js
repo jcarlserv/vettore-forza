@@ -260,7 +260,58 @@ function abrirMunicipio(id) {
 
   mostrarLogoExistente('previa-logo-mun', m.logo_data_url);
   limparAviso(document.getElementById('aviso-municipio'));
+  await carregarCapasDoMunicipio(id);
   document.getElementById('modal-municipio').hidden = false;
+}
+
+async function carregarCapasDoMunicipio(municipioId) {
+  const catalogo = typeof garantirCatalogoDocumentos === 'function'
+    ? await garantirCatalogoDocumentos() : [];
+  const blocos = [...new Set(catalogo.map(c => c.bloco))];
+  const rotulos = { organizacao: 'Dados da Organização', financeiro: 'Financeiro' };
+
+  let capaGeral = null, titulosBloco = {};
+  if (municipioId) {
+    const [{ data: cg }, { data: tb }] = await Promise.all([
+      sb.from('capa_municipio').select('*').eq('municipio_id', municipioId).maybeSingle(),
+      sb.from('capa_bloco_titulo').select('*').eq('municipio_id', municipioId)
+    ]);
+    capaGeral = cg;
+    (tb || []).forEach(t => { titulosBloco[t.bloco] = t.titulo; });
+  }
+
+  document.getElementById('mun-capa-subtitulo').value =
+    capaGeral?.subtitulo_prestacao || 'GESTÃO DOS SERVIÇOS DE SAÚDE MUNICIPAL';
+  document.getElementById('mun-capa-organizacao').value = capaGeral?.texto_organizacao || '';
+
+  document.getElementById('capas-blocos').innerHTML = blocos.map(b => `
+    <div class="campo">
+      <label for="capa-bloco-${b}">${escapar(rotulos[b] || b)}</label>
+      <input type="text" id="capa-bloco-${b}" data-bloco="${b}"
+             value="${escapar(titulosBloco[b] || (rotulos[b] || b).toUpperCase())}">
+    </div>`).join('');
+}
+
+async function salvarCapasDoMunicipio(municipioId) {
+  if (!municipioId) return;
+  const subtitulo = document.getElementById('mun-capa-subtitulo').value.trim();
+  const textoOrg  = document.getElementById('mun-capa-organizacao').value.trim();
+
+  await sb.from('capa_municipio').upsert({
+    municipio_id: municipioId,
+    subtitulo_prestacao: subtitulo || 'GESTÃO DOS SERVIÇOS DE SAÚDE MUNICIPAL',
+    texto_organizacao: textoOrg || null,
+    atualizado_em: new Date().toISOString(),
+    atualizado_por: Sessao.perfil.id
+  });
+
+  const linhas = [...document.querySelectorAll('#capas-blocos [data-bloco]')].map(el => ({
+    municipio_id: municipioId,
+    bloco: el.dataset.bloco,
+    titulo: el.value.trim() || el.dataset.bloco.toUpperCase()
+  }));
+  if (linhas.length)
+    await sb.from('capa_bloco_titulo').upsert(linhas, { onConflict: 'municipio_id,bloco' });
 }
 
 // Preenche o código IBGE quando o nome digitado bate com a lista.
@@ -430,12 +481,13 @@ async function salvarMunicipio() {
   const logo = valorLogoParaSalvar('previa-logo-mun');
   if (logo !== undefined) dados.logo_data_url = logo;
 
-  let error;
+  let error, registro;
   if (editandoMunicipio) {
     ({ error } = await sb.from('municipio').update(dados).eq('id', editandoMunicipio.id));
+    registro = editandoMunicipio;
   } else {
     dados.criado_por = Sessao.perfil.id;
-    ({ error } = await sb.from('municipio').insert(dados));
+    ({ data: registro, error } = await sb.from('municipio').insert(dados).select().single());
   }
 
   if (error) {
@@ -443,6 +495,8 @@ async function salvarMunicipio() {
       ? 'Já existe um município com esse nome nessa UF.'
       : 'Não foi possível salvar: ' + error.message);
   }
+
+  await salvarCapasDoMunicipio(registro?.id);
 
   registrarAuditoria('municipio', editandoMunicipio?.id, editandoMunicipio ? 'ALTERAR' : 'INSERIR');
   document.getElementById('modal-municipio').hidden = true;

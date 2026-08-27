@@ -407,7 +407,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target.matches('[data-enviar-chave]')) enviarDocumento(e.target);
   });
   document.getElementById('pc-blocos')?.addEventListener('click', e => {
-    const botao = e.target.closest('[data-excluir-id]');
-    if (botao) excluirDocumento(botao.dataset.excluirId, botao.dataset.excluirCaminho);
+    const botaoExcluir = e.target.closest('[data-excluir-id]');
+    if (botaoExcluir) return excluirDocumento(botaoExcluir.dataset.excluirId, botaoExcluir.dataset.excluirCaminho);
+    const botaoBaixar = e.target.closest('[data-baixar-bloco]');
+    if (botaoBaixar) baixarBloco(botaoBaixar.dataset.baixarBloco, botaoBaixar.closest('.painel').querySelector('h3').textContent.replace(/^\d+\s*·\s*/, ''));
   });
 });

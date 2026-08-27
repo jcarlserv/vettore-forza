@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="css/estilos.css?v=0.10.0">
+<link rel="stylesheet" href="css/estilos.css?v=0.11.0">
 </head>
 <body>
 
@@ -138,14 +138,22 @@
 
       <div id="pc-blocos" hidden>
         <div class="painel">
-          <header><h3>2 · Dados da Organização</h3></header>
+          <header>
+            <h3>2 · Dados da Organização</h3>
+            <div class="espaco"></div>
+            <button class="botao neutro pequeno" type="button" data-baixar-bloco="organizacao">Baixar tudo</button>
+          </header>
           <div class="conteudo">
             <div class="lista-documentos" id="pc-doc-organizacao"></div>
           </div>
         </div>
 
         <div class="painel">
-          <header><h3>3 · Financeiro</h3></header>
+          <header>
+            <h3>3 · Financeiro</h3>
+            <div class="espaco"></div>
+            <button class="botao neutro pequeno" type="button" data-baixar-bloco="financeiro">Baixar tudo</button>
+          </header>
           <div class="conteudo">
             <div class="lista-documentos" id="pc-doc-financeiro"></div>
           </div>
@@ -482,6 +490,20 @@
           <button type="button" class="botao neutro pequeno" id="remover-logo-mun">Remover</button>
         </div>
       </div>
+
+      <div class="divisor-secao"><span>Capas do PDF (Prestação de Contas)</span></div>
+
+      <div class="campo">
+        <label for="mun-capa-subtitulo">Subtítulo da capa geral</label>
+        <input type="text" id="mun-capa-subtitulo" placeholder="GESTÃO DOS SERVIÇOS DE SAÚDE MUNICIPAL">
+      </div>
+      <div class="campo">
+        <label for="mun-capa-organizacao">Texto da capa da organização (2ª página)</label>
+        <textarea id="mun-capa-organizacao" rows="2"
+          placeholder="Ex: INSTITUTO DE GESTÃO, OPERACIONALIZAÇÃO E ASSISTÊNCIA A VIDA FORZA - INSTITUTO FORZA"></textarea>
+      </div>
+      <p class="rodape-nota">Título de cada capa de bloco:</p>
+      <div id="capas-blocos" class="grade-2"></div>
     </div>
     <footer>
       <button class="botao neutro" data-fechar="modal-municipio">Cancelar</button>
@@ -630,13 +652,15 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/config.js?v=0.10.0"></script>
-<script src="js/api.js?v=0.10.0"></script>
-<script src="js/autenticacao.js?v=0.10.0"></script>
-<script src="js/municipios-ce.js?v=0.10.0"></script>
-<script src="js/cadastros-util.js?v=0.10.0"></script>
-<script src="js/configuracoes.js?v=0.10.0"></script>
-<script src="js/prestacoes.js?v=0.10.0"></script>
-<script src="js/app.js?v=0.10.0"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+<script src="js/config.js?v=0.11.0"></script>
+<script src="js/api.js?v=0.11.0"></script>
+<script src="js/autenticacao.js?v=0.11.0"></script>
+<script src="js/municipios-ce.js?v=0.11.0"></script>
+<script src="js/cadastros-util.js?v=0.11.0"></script>
+<script src="js/configuracoes.js?v=0.11.0"></script>
+<script src="js/prestacoes.js?v=0.11.0"></script>
+<script src="js/capas.js?v=0.11.0"></script>
+<script src="js/app.js?v=0.11.0"></script>
 </body>
 </html>

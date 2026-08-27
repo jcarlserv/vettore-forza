@@ -179,6 +179,47 @@ async function subirArquivo(token: string, pastaId: string, arquivo: File) {
 export default {
   async fetch(req: Request): Promise<Response> {
     if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
+
+    const url = new URL(req.url);
+    const idParaBaixar = url.searchParams.get("baixar");
+
+    // ---- GET ?baixar=<fileId> — devolve os bytes do arquivo do Drive ----
+    // Passa pela conta de serviço aqui dentro pra evitar CORS do domínio
+    // do Drive. Só libera se a pessoa alcançar o documento pela RLS de
+    // sempre (prestacao_documento) — o Drive não é atalho de permissão.
+    if (req.method === "GET" && idParaBaixar) {
+      try {
+        const sbUsuario = createClient(
+          Deno.env.get("SUPABASE_URL") ?? "",
+          Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+          { global: { headers: { Authorization: req.headers.get("Authorization") ?? "" } } }
+        );
+        const { data: doc } = await sbUsuario
+          .from("prestacao_documento")
+          .select("id")
+          .eq("arquivo_drive_id", idParaBaixar)
+          .maybeSingle();
+        if (!doc) return json({ erro: "Arquivo não encontrado ou sem permissão." }, 404);
+
+        const contaServicoTexto = Deno.env.get("GOOGLE_SERVICE_ACCOUNT_JSON");
+        if (!contaServicoTexto) throw new Error("Secret GOOGLE_SERVICE_ACCOUNT_JSON ausente.");
+        const token = await tokenGoogle(JSON.parse(contaServicoTexto));
+
+        const r = await fetch(
+          `https://www.googleapis.com/drive/v3/files/${idParaBaixar}?alt=media&supportsAllDrives=true`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (!r.ok) return json({ erro: "Falha ao baixar do Drive: " + await r.text() }, 502);
+
+        return new Response(r.body, {
+          headers: { ...CORS, "Content-Type": r.headers.get("Content-Type") || "application/octet-stream" },
+        });
+      } catch (e) {
+        console.error("[Vettore] upload-drive (baixar) falhou:", e);
+        return json({ erro: String((e as Error).message ?? e) }, 500);
+      }
+    }
+
     if (req.method !== "POST") return json({ erro: "Use POST." }, 405);
 
     try {
