@@ -119,22 +119,22 @@ function renderEditorBlocos(blocos, documentos) {
   area.innerHTML = blocos.map(b => {
     const itens = documentos.filter(d => d.bloco === b.chave);
     return `
-      <div class="bloco-editor" data-bloco-chave="${escapar(b.chave)}">
+      <div class="bloco-editor" data-bloco-chave="${escapar(b.chave)}" ${podeEditar ? 'draggable="true"' : ''}>
         <div class="linha-bloco-editor">
+          ${podeEditar ? '<span class="alca-arrastar" title="Arraste para reordenar">⠿</span>' : ''}
           <input type="text" data-bloco-rotulo value="${escapar(b.rotulo)}" ${podeEditar ? '' : 'disabled'}>
-          <input type="number" data-bloco-ordem value="${b.ordem}" min="1" ${podeEditar ? '' : 'disabled'}>
-          ${podeEditar ? `<button type="button" class="botao neutro pequeno" data-salvar-bloco>Salvar</button>` : ''}
+          ${podeEditar ? `<button type="button" class="botao neutro pequeno" data-salvar-bloco>Salvar nome</button>` : ''}
         </div>
         <div class="lista-doc-editor">
           ${itens.map(d => `
-            <div class="linha-doc-editor" data-doc-chave="${escapar(d.chave)}">
+            <div class="linha-doc-editor" data-doc-chave="${escapar(d.chave)}" ${podeEditar ? 'draggable="true"' : ''}>
+              ${podeEditar ? '<span class="alca-arrastar" title="Arraste para reordenar">⠿</span>' : ''}
               <input type="text" data-doc-rotulo value="${escapar(d.rotulo)}" ${podeEditar ? '' : 'disabled'}>
-              <input type="number" data-doc-ordem value="${d.ordem}" min="1" ${podeEditar ? '' : 'disabled'}>
               <label class="check-varios">
                 <input type="checkbox" data-doc-multiplo ${d.multiplo ? 'checked' : ''} ${podeEditar ? '' : 'disabled'}>
                 Aceita vários / muda todo mês
               </label>
-              ${podeEditar ? `<button type="button" class="botao neutro pequeno" data-salvar-doc>Salvar</button>` : ''}
+              ${podeEditar ? `<button type="button" class="botao neutro pequeno" data-salvar-doc>Salvar nome</button>` : ''}
             </div>`).join('')}
           ${podeEditar ? `
           <div class="linha-cnpj" style="margin-top:8px">
@@ -146,16 +146,83 @@ function renderEditorBlocos(blocos, documentos) {
         </div>
       </div>`;
   }).join('') || '<div class="vazio">Nenhum bloco cadastrado ainda.</div>';
+
+  if (podeEditar) {
+    tornarArrastavel(area, '.bloco-editor', salvarOrdemBlocosArrastados);
+    area.querySelectorAll('.lista-doc-editor').forEach(lista =>
+      tornarArrastavel(lista, '.linha-doc-editor', salvarOrdemDocsArrastados));
+  }
+}
+
+// Arraste genérico: reordena os elementos visualmente e chama
+// aoSoltar(container) quando a pessoa larga o item.
+function tornarArrastavel(container, seletorItem, aoSoltar) {
+  let arrastando = null;
+
+  container.addEventListener('dragstart', e => {
+    const item = e.target.closest(seletorItem);
+    if (!item || item.parentNode !== container) return;
+    arrastando = item;
+    e.dataTransfer.effectAllowed = 'move';
+    setTimeout(() => item.classList.add('arrastando'), 0);
+  });
+
+  container.addEventListener('dragend', () => {
+    if (arrastando) arrastando.classList.remove('arrastando');
+    arrastando = null;
+  });
+
+  container.addEventListener('dragover', e => {
+    if (!arrastando) return;
+    e.preventDefault();
+    const alvo = e.target.closest(seletorItem);
+    if (!alvo || alvo === arrastando || alvo.parentNode !== container) return;
+    const retangulo = alvo.getBoundingClientRect();
+    const depois = (e.clientY - retangulo.top) > retangulo.height / 2;
+    container.insertBefore(arrastando, depois ? alvo.nextSibling : alvo);
+  });
+
+  container.addEventListener('drop', e => {
+    e.preventDefault();
+    if (arrastando) aoSoltar(container);
+  });
+}
+
+async function salvarOrdemBlocosArrastados(area) {
+  const chaves = [...area.querySelectorAll('.bloco-editor')].map(el => el.dataset.blocoChave);
+  const aviso = document.getElementById('aviso-blocos-editor');
+  for (let i = 0; i < chaves.length; i++) {
+    const rotulo = area.querySelector(`[data-bloco-chave="${chaves[i]}"] [data-bloco-rotulo]`).value.trim();
+    await sb.rpc('registrar_bloco', { p_chave: chaves[i], p_rotulo: rotulo, p_ordem: (i + 1) * 10 });
+  }
+  CATALOGO_BLOCOS = null;
+  mostrarAviso(aviso, 'Ordem salva.', 'ok');
+}
+
+async function salvarOrdemDocsArrastados(lista) {
+  const bloco = lista.closest('[data-bloco-chave]').dataset.blocoChave;
+  const chaves = [...lista.querySelectorAll('.linha-doc-editor')].map(el => el.dataset.docChave);
+  const aviso = document.getElementById('aviso-blocos-editor');
+  for (let i = 0; i < chaves.length; i++) {
+    const linha = lista.querySelector(`[data-doc-chave="${chaves[i]}"]`);
+    const rotulo = linha.querySelector('[data-doc-rotulo]').value.trim();
+    const multiplo = linha.querySelector('[data-doc-multiplo]').checked;
+    await sb.rpc('registrar_documento', {
+      p_chave: chaves[i], p_bloco: bloco, p_rotulo: rotulo, p_multiplo: multiplo, p_ordem: (i + 1) * 10
+    });
+  }
+  CATALOGO_DOCUMENTOS = null;
+  mostrarAviso(aviso, 'Ordem salva.', 'ok');
 }
 
 async function salvarBlocoEditor(painel) {
   const chave = painel.dataset.blocoChave;
   const rotulo = painel.querySelector('[data-bloco-rotulo]').value.trim();
-  const ordem = Number(painel.querySelector('[data-bloco-ordem]').value) || 100;
   const aviso = document.getElementById('aviso-blocos-editor');
   if (!rotulo) return mostrarAviso(aviso, 'Informe o nome do bloco.');
 
-  const { error } = await sb.rpc('registrar_bloco', { p_chave: chave, p_rotulo: rotulo, p_ordem: ordem });
+  const { data: atual } = await sb.from('bloco_catalogo').select('ordem').eq('chave', chave).maybeSingle();
+  const { error } = await sb.rpc('registrar_bloco', { p_chave: chave, p_rotulo: rotulo, p_ordem: atual?.ordem || 100 });
   if (error) return mostrarAviso(aviso, 'Não foi possível salvar: ' + error.message);
 
   if (typeof CATALOGO_BLOCOS !== 'undefined') CATALOGO_BLOCOS = null;
@@ -190,13 +257,13 @@ async function salvarDocEditor(linha) {
   const chave = linha.dataset.docChave;
   const bloco = linha.closest('[data-bloco-chave]').dataset.blocoChave;
   const rotulo = linha.querySelector('[data-doc-rotulo]').value.trim();
-  const ordem = Number(linha.querySelector('[data-doc-ordem]').value) || 100;
   const multiplo = linha.querySelector('[data-doc-multiplo]').checked;
   const aviso = document.getElementById('aviso-blocos-editor');
   if (!rotulo) return mostrarAviso(aviso, 'Informe o nome do documento.');
 
+  const { data: atual } = await sb.from('documento_catalogo').select('ordem').eq('chave', chave).maybeSingle();
   const { error } = await sb.rpc('registrar_documento', {
-    p_chave: chave, p_bloco: bloco, p_rotulo: rotulo, p_multiplo: multiplo, p_ordem: ordem
+    p_chave: chave, p_bloco: bloco, p_rotulo: rotulo, p_multiplo: multiplo, p_ordem: atual?.ordem || 100
   });
   if (error) return mostrarAviso(aviso, 'Não foi possível salvar: ' + error.message);
 

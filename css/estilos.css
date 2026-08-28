@@ -845,6 +845,19 @@ td.acoes { text-align: right; white-space: nowrap; }
   flex: 0 0 auto;
 }
 
+.alca-arrastar {
+  cursor: grab;
+  color: var(--tinta-40);
+  font-size: 16px;
+  user-select: none;
+  flex: 0 0 auto;
+}
+.bloco-editor.arrastando, .linha-doc-editor.arrastando {
+  opacity: .4;
+}
+.bloco-editor { cursor: default; }
+.linha-bloco-editor { cursor: default; }
+
 .botao-subcapa {
   display: inline-flex; align-items: center; justify-content: center;
   width: 20px; height: 20px;

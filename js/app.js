@@ -11,6 +11,8 @@ function irParaAba(nome) {
 
   if (nome === 'configuracoes') irParaSubAba(subAbaAtual);
   if (nome === 'inicio' && typeof renderInicioMunicipios === 'function') renderInicioMunicipios();
+  if (nome === 'prestacoes' && typeof ContextoPC !== 'undefined' && ContextoPC.prestacaoId
+      && typeof carregarDocumentos === 'function') carregarDocumentos();
 }
 
 async function iniciar() {
