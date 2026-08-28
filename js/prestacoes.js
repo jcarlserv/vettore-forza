@@ -154,6 +154,8 @@ async function tentarLocalizarPrestacao() {
   limparAviso(aviso);
   const statusEl = document.getElementById('pc-status');
   statusEl.hidden = true;
+  const blocoRepetir = document.getElementById('pc-repetir');
+  blocoRepetir.hidden = true;
 
   const mes = Number(document.getElementById('pc-mes').value);
   const ano = Number(document.getElementById('pc-ano').value);
@@ -194,9 +196,80 @@ async function tentarLocalizarPrestacao() {
     if (!contratoCampo.value) contratoCampo.value = ContextoPC.contratoGestaoNumero;
     if (pode('prestacao.criar')) {
       mostrarAviso(aviso, 'Prestação ainda não aberta para este mês. Preencha e clique em Salvar.', 'ok');
+      await popularOpcoesRepetir();
     } else {
       mostrarAviso(aviso, 'A prestação deste mês ainda não foi aberta pelo Gestor.');
     }
+  }
+}
+
+// Lista as prestações anteriores dessa mesma instituição, pra oferecer
+// repetir Edital/Contrato e as marcações de subcapa de um mês pro outro.
+async function popularOpcoesRepetir() {
+  const blocoRepetir = document.getElementById('pc-repetir');
+  const select = document.getElementById('pc-repetir-select');
+
+  const { data: anteriores } = await sb.from('prestacao_contas')
+    .select('id, mes, ano')
+    .eq('unidade_saude_id', ContextoPC.unidadeId)
+    .order('ano', { ascending: false })
+    .order('mes', { ascending: false })
+    .limit(24);
+
+  if (!anteriores || !anteriores.length) { blocoRepetir.hidden = true; return; }
+
+  select.innerHTML = anteriores.map(p =>
+    `<option value="${p.id}">${String(p.mes).padStart(2, '0')}/${p.ano}</option>`).join('');
+  blocoRepetir.hidden = false;
+}
+
+async function repetirDadosDe() {
+  const origemId = document.getElementById('pc-repetir-select').value;
+  const botao = document.getElementById('pc-repetir-botao');
+  if (!origemId) return;
+
+  const mes = Number(document.getElementById('pc-mes').value);
+  const ano = Number(document.getElementById('pc-ano').value);
+  if (!ContextoPC.unidadeId || !mes || !ano) return;
+
+  botao.disabled = true;
+  botao.textContent = 'Repetindo…';
+
+  try {
+    const { data: origem, error: erroOrigem } = await sb.from('prestacao_contas')
+      .select('*').eq('id', origemId).single();
+    if (erroOrigem) throw erroOrigem;
+
+    const { data: nova, error: erroNova } = await sb.from('prestacao_contas')
+      .upsert({
+        unidade_saude_id: ContextoPC.unidadeId,
+        contrato_gestao_id: origem.contrato_gestao_id,
+        mes, ano,
+        edital: origem.edital,
+        contrato: origem.contrato,
+        criado_por: Sessao.perfil.id
+      }, { onConflict: 'unidade_saude_id,mes,ano' })
+      .select().single();
+    if (erroNova) throw erroNova;
+
+    const { data: capasOrigem } = await sb.from('prestacao_documento_capa')
+      .select('chave, tem_subcapa, titulo').eq('prestacao_id', origemId);
+
+    if (capasOrigem?.length) {
+      await sb.from('prestacao_documento_capa').upsert(
+        capasOrigem.map(c => ({ ...c, prestacao_id: nova.id })),
+        { onConflict: 'prestacao_id,chave' }
+      );
+    }
+
+    registrarAuditoria('prestacao_contas', nova.id, 'INSERIR', { repetido_de: origemId });
+    await tentarLocalizarPrestacao();
+  } catch (e) {
+    alert('Não foi possível repetir os dados: ' + e.message);
+    console.error('[Vettore] repetirDadosDe:', e);
+  } finally {
+    botao.disabled = false;
+    botao.textContent = 'Repetir dados desse mês';
   }
 }
 
@@ -447,6 +520,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('pc-mes')?.addEventListener('change', tentarLocalizarPrestacao);
   document.getElementById('pc-ano')?.addEventListener('change', tentarLocalizarPrestacao);
   document.getElementById('pc-salvar-cabecalho')?.addEventListener('click', salvarCabecalhoPC);
+  document.getElementById('pc-repetir-botao')?.addEventListener('click', repetirDadosDe);
 
   document.getElementById('pc-blocos')?.addEventListener('click', e => {
     const botaoExcluir = e.target.closest('[data-excluir-id]');
