@@ -403,6 +403,7 @@ function renderBlocoDocumentos(nomeBloco, idContainer, catalogo, porChave, capaP
   container.innerHTML = itens.map(item => {
     const arquivos = porChave[item.chave] || [];
     const mostrarBotaoEnviar = podeEnviar && (item.multiplo || arquivos.length === 0);
+    const textoBotaoEnviar = arquivos.length > 0 ? '+ Adicionar' : 'Enviar';
     const capa = capaPorChave[item.chave];
     const capaAtiva = !!capa?.tem_subcapa;
 
@@ -437,7 +438,7 @@ function renderBlocoDocumentos(nomeBloco, idContainer, catalogo, porChave, capaP
         <span class="acoes-documento">
           ${mostrarBotaoEnviar ? `
             <label class="botao neutro pequeno">
-              Enviar
+              ${textoBotaoEnviar}
               <input type="file" data-enviar-chave="${item.chave}" data-enviar-bloco="${nomeBloco}" hidden>
             </label>` : ''}
         </span>
