@@ -365,6 +365,7 @@ async function garantirCatalogoDocumentos() {
 async function carregarDocumentos() {
   if (!ContextoPC.prestacaoId) return;
   const catalogo = await garantirCatalogoDocumentos();
+  const blocos = [...new Set(catalogo.map(c => c.bloco))];
 
   const [{ data: arquivos, error }, { data: capasDocumento }] = await Promise.all([
     sb.from('prestacao_documento').select('*').eq('prestacao_id', ContextoPC.prestacaoId).order('enviado_em'),
@@ -389,8 +390,30 @@ async function carregarDocumentos() {
   const capaPorChave = {};
   (capasDocumento || []).forEach(c => { capaPorChave[c.chave] = c; });
 
-  renderBlocoDocumentos('organizacao', 'pc-doc-organizacao', catalogo, porChave, capaPorChave);
-  renderBlocoDocumentos('financeiro', 'pc-doc-financeiro', catalogo, porChave, capaPorChave);
+  // Um painel por bloco encontrado no catálogo — um bloco novo criado
+  // por SQL (registrar_documento) aparece aqui sozinho, sem precisar
+  // mexer em código.
+  const listaBlocos = document.getElementById('pc-blocos-lista');
+  listaBlocos.innerHTML = blocos.map((b, i) => `
+    <div class="painel">
+      <header><h3>${i + 2} · ${escapar(rotuloDoBloco(b))}</h3></header>
+      <div class="conteudo">
+        <div class="lista-documentos" id="pc-doc-${escapar(b)}"></div>
+        <button class="botao neutro pequeno" type="button" data-baixar-bloco="${escapar(b)}">Baixar este bloco</button>
+        <button class="botao neutro pequeno" type="button" data-excluir-bloco="${escapar(b)}"
+                data-permissao="prestacao.excluir">Excluir arquivos deste bloco</button>
+      </div>
+    </div>`).join('');
+  aplicarPermissoesNaTela(listaBlocos);
+
+  blocos.forEach(b => renderBlocoDocumentos(b, `pc-doc-${b}`, catalogo, porChave, capaPorChave));
+
+  await carregarFornecedores();
+}
+
+function rotuloDoBloco(chave) {
+  return ROTULO_BLOCO[chave] ||
+    chave.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 
 function renderBlocoDocumentos(nomeBloco, idContainer, catalogo, porChave, capaPorChave) {
@@ -402,7 +425,9 @@ function renderBlocoDocumentos(nomeBloco, idContainer, catalogo, porChave, capaP
 
   container.innerHTML = itens.map(item => {
     const arquivos = porChave[item.chave] || [];
-    const mostrarBotaoEnviar = podeEnviar && (item.multiplo || arquivos.length === 0);
+    // Todo documento aceita mais de um arquivo — o botão só troca de
+    // texto pra deixar claro se é o primeiro envio ou um a mais.
+    const mostrarBotaoEnviar = podeEnviar;
     const textoBotaoEnviar = arquivos.length > 0 ? '+ Adicionar' : 'Enviar';
     const capa = capaPorChave[item.chave];
     const capaAtiva = !!capa?.tem_subcapa;
@@ -533,6 +558,62 @@ async function excluirDocumento(id, caminho) {
   await carregarDocumentos();
 }
 
+/* -------- Fornecedores (bloco à parte — lista que cresce) -------- */
+
+async function carregarFornecedores() {
+  const { data: fornecedores } = await sb.from('prestacao_fornecedor')
+    .select('*').eq('prestacao_id', ContextoPC.prestacaoId).order('ordem').order('criado_em');
+
+  const podeEditar = pode('prestacao.criar');
+  const lista = document.getElementById('pc-lista-fornecedores');
+
+  lista.innerHTML = (fornecedores || []).map(f => `
+    <div class="linha-pc linha-fornecedor" data-fornecedor-id="${f.id}">
+      <div class="campo">
+        <label>Nome</label>
+        <input type="text" data-fornecedor-nome value="${escapar(f.nome)}" ${podeEditar ? '' : 'disabled'}>
+      </div>
+      <div class="campo">
+        <label>CNPJ</label>
+        <input type="text" data-fornecedor-cnpj value="${escapar(f.cnpj || '')}" ${podeEditar ? '' : 'disabled'}>
+      </div>
+      ${podeEditar ? `
+        <button class="botao neutro pequeno" type="button" data-salvar-fornecedor="${f.id}">Salvar</button>
+        <button class="botao neutro pequeno" type="button" data-excluir-fornecedor="${f.id}">Excluir</button>
+      ` : ''}
+    </div>`).join('') || '<div class="vazio">Nenhum fornecedor cadastrado ainda.</div>';
+}
+
+async function adicionarFornecedor() {
+  const { data, error } = await sb.from('prestacao_fornecedor')
+    .insert({ prestacao_id: ContextoPC.prestacaoId, nome: 'Novo fornecedor', criado_por: Sessao.perfil.id })
+    .select().single();
+  if (error) { alert('Não foi possível adicionar.'); console.error('[Vettore] adicionar fornecedor:', error); return; }
+  registrarAuditoria('prestacao_fornecedor', data.id, 'INSERIR');
+  await carregarFornecedores();
+}
+
+async function salvarFornecedor(id) {
+  const linha = document.querySelector(`[data-fornecedor-id="${id}"]`);
+  const nome = linha.querySelector('[data-fornecedor-nome]').value.trim();
+  const cnpj = linha.querySelector('[data-fornecedor-cnpj]').value.trim();
+  if (!nome) return alert('Informe o nome do fornecedor.');
+
+  const { error } = await sb.from('prestacao_fornecedor')
+    .update({ nome, cnpj: cnpj || null }).eq('id', id);
+  if (error) { alert('Não foi possível salvar.'); console.error('[Vettore] salvar fornecedor:', error); return; }
+  registrarAuditoria('prestacao_fornecedor', id, 'ALTERAR');
+  await carregarFornecedores();
+}
+
+async function excluirFornecedor(id) {
+  if (!confirm('Excluir este fornecedor?')) return;
+  const { error } = await sb.from('prestacao_fornecedor').delete().eq('id', id);
+  if (error) { alert('Não foi possível excluir.'); console.error('[Vettore] excluir fornecedor:', error); return; }
+  registrarAuditoria('prestacao_fornecedor', id, 'EXCLUIR');
+  await carregarFornecedores();
+}
+
 // Apaga todos os arquivos de um bloco (não a prestação em si).
 // Os arquivos que estavam no Supabase Storage são removidos de
 // verdade; os que estavam no Drive ficam lá, como segurança.
@@ -633,11 +714,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const botaoExcluir = e.target.closest('[data-excluir-id]');
     if (botaoExcluir) return excluirDocumento(botaoExcluir.dataset.excluirId, botaoExcluir.dataset.excluirCaminho);
     const botaoBaixar = e.target.closest('[data-baixar-bloco]');
-    if (botaoBaixar) return baixarBloco(botaoBaixar.dataset.baixarBloco, ROTULO_BLOCO[botaoBaixar.dataset.baixarBloco] || botaoBaixar.dataset.baixarBloco);
+    if (botaoBaixar) return baixarBloco(botaoBaixar.dataset.baixarBloco, rotuloDoBloco(botaoBaixar.dataset.baixarBloco));
     const botaoExcluirBloco = e.target.closest('[data-excluir-bloco]');
-    if (botaoExcluirBloco) return excluirArquivosDoBloco(botaoExcluirBloco.dataset.excluirBloco, ROTULO_BLOCO[botaoExcluirBloco.dataset.excluirBloco] || botaoExcluirBloco.dataset.excluirBloco);
+    if (botaoExcluirBloco) return excluirArquivosDoBloco(botaoExcluirBloco.dataset.excluirBloco, rotuloDoBloco(botaoExcluirBloco.dataset.excluirBloco));
     const botaoSubcapa = e.target.closest('[data-subcapa-chave]');
-    if (botaoSubcapa) alternarSubcapa(botaoSubcapa.dataset.subcapaChave);
+    if (botaoSubcapa) return alternarSubcapa(botaoSubcapa.dataset.subcapaChave);
+    if (e.target.id === 'pc-add-fornecedor') return adicionarFornecedor();
+    const botaoSalvarFornecedor = e.target.closest('[data-salvar-fornecedor]');
+    if (botaoSalvarFornecedor) return salvarFornecedor(botaoSalvarFornecedor.dataset.salvarFornecedor);
+    const botaoExcluirFornecedor = e.target.closest('[data-excluir-fornecedor]');
+    if (botaoExcluirFornecedor) return excluirFornecedor(botaoExcluirFornecedor.dataset.excluirFornecedor);
   });
   document.getElementById('pc-blocos')?.addEventListener('change', e => {
     if (e.target.matches('[data-enviar-chave]')) enviarDocumento(e.target);

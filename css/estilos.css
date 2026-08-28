@@ -799,6 +799,14 @@ td.acoes { text-align: right; white-space: nowrap; }
 }
 .linha-repetir select { flex: 1; max-width: 280px; }
 
+.linha-fornecedor {
+  grid-template-columns: 2fr 1.4fr auto auto;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--linha);
+}
+.linha-fornecedor:last-child { border-bottom: none; }
+.linha-fornecedor .campo { margin-bottom: 0; }
+
 .botao-subcapa {
   display: inline-flex; align-items: center; justify-content: center;
   width: 20px; height: 20px;

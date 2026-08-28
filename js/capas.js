@@ -67,7 +67,7 @@ async function baixarTudo() {
 
     let ignorados = [];
     for (const bloco of blocos) {
-      const dosIgnorados = await montarConteudoBloco(pdfFinal, ctx, bloco, ROTULO_BLOCO[bloco] || bloco);
+      const dosIgnorados = await montarConteudoBloco(pdfFinal, ctx, bloco, rotuloDoBloco(bloco));
       ignorados = ignorados.concat(dosIgnorados);
     }
 
