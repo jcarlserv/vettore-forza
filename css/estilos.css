@@ -784,6 +784,15 @@ td.acoes { text-align: right; white-space: nowrap; }
   color: #fff; background: var(--marca); border-color: var(--marca);
 }
 
+.linha-subcapa {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--linha);
+}
+.linha-subcapa:last-child { border-bottom: none; }
+.linha-subcapa .nome-documento { flex: 0 0 220px; font-size: 13px; }
+.linha-subcapa input[type="text"] { flex: 1; }
+
 /* ---------- Responsivo ---------- */
 
 @media (max-width: 767px) {
