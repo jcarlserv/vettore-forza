@@ -120,9 +120,19 @@ async function montarConteudoBloco(pdfFinal, ctx, nomeBloco, rotuloBloco) {
   const ignorados = [];
   for (const item of itens) {
     const doItem = (arquivos || []).filter(a => a.chave === item.chave);
+    if (item.tem_subcapa && doItem.length) {
+      desenharSubcapa(pdfFinal, ctx, item.rotulo.toUpperCase());
+    }
     for (const a of doItem) await anexarArquivo(pdfFinal, a, ignorados);
   }
   return ignorados;
+}
+
+// Subcapa simples: só o subtítulo do documento, sem cabeçalho
+// completo — separa visualmente cada documento dentro do bloco.
+function desenharSubcapa(pdf, ctx, subtitulo) {
+  const pagina = pdf.addPage(A4);
+  centralizar(pagina, ctx.fonteNegrito, subtitulo, 20, 420);
 }
 
 /* -------- Buscar e anexar cada arquivo -------- */
