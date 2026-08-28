@@ -282,7 +282,6 @@ async function carregarCapasDoMunicipio(municipioId) {
 
   document.getElementById('mun-capa-subtitulo').value =
     capaGeral?.subtitulo_prestacao || 'GESTÃO DOS SERVIÇOS DE SAÚDE MUNICIPAL';
-  document.getElementById('mun-capa-organizacao').value = capaGeral?.texto_organizacao || '';
 
   document.getElementById('capas-blocos').innerHTML = blocos.map(b => `
     <div class="campo">
@@ -295,12 +294,10 @@ async function carregarCapasDoMunicipio(municipioId) {
 async function salvarCapasDoMunicipio(municipioId) {
   if (!municipioId) return;
   const subtitulo = document.getElementById('mun-capa-subtitulo').value.trim();
-  const textoOrg  = document.getElementById('mun-capa-organizacao').value.trim();
 
   await sb.from('capa_municipio').upsert({
     municipio_id: municipioId,
     subtitulo_prestacao: subtitulo || 'GESTÃO DOS SERVIÇOS DE SAÚDE MUNICIPAL',
-    texto_organizacao: textoOrg || null,
     atualizado_em: new Date().toISOString(),
     atualizado_por: Sessao.perfil.id
   });

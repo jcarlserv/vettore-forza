@@ -181,7 +181,7 @@ function baixarBytesComoArquivo(bytes, nomeArquivo) {
 /* -------- Desenho das capas -------- */
 
 async function desenharCapaPrestacao(pdf, ctx) {
-  let pagina = pdf.addPage(A4);
+  const pagina = pdf.addPage(A4);
   await desenharCabecalho(pdf, pagina, ctx);
   centralizar(pagina, ctx.fonteNegrito, 'PRESTAÇÃO DE CONTAS', 34, 660);
   centralizar(pagina, ctx.fonteNegrito, `${ctx.municipio.nome.toUpperCase()} - ${ctx.municipio.uf}`, 34, 615);
@@ -189,12 +189,6 @@ async function desenharCapaPrestacao(pdf, ctx) {
     ctx.capaMun?.subtitulo_prestacao || 'GESTÃO DOS SERVIÇOS DE SAÚDE MUNICIPAL', 18, 480);
   if (ctx.edital) centralizar(pagina, ctx.fonteNegrito, `EDITAL DE CHAMAMENTO PÚBLICO N° ${ctx.edital}`, 18, 456);
   centralizar(pagina, ctx.fonteNegrito, `${MESES_EXTENSO[ctx.mes - 1] || ''} - ${ctx.ano}`, 14, 140);
-
-  pagina = pdf.addPage(A4);
-  await desenharCabecalho(pdf, pagina, ctx);
-  centralizar(pagina, ctx.fonteNegrito, `${ctx.municipio.nome.toUpperCase()} - ${ctx.municipio.uf}`, 24, 540);
-  const texto = ctx.capaMun?.texto_organizacao || ctx.organizacao?.razao_social || '';
-  if (texto) quebrarLinhasCentralizado(pagina, ctx.fonteNegrito, texto, 18, 460, 420);
 }
 
 async function desenharCapaBloco(pdf, ctx, titulo) {
@@ -204,25 +198,44 @@ async function desenharCapaBloco(pdf, ctx, titulo) {
   centralizar(pagina, ctx.fonteNegrito, titulo, 18, 460);
 }
 
+// Cabeçalho em 3 colunas: logo da organização à esquerda, texto
+// centralizado (horizontal e verticalmente) no meio, logo do
+// município à direita — igual à tabela do modelo em Word.
 async function desenharCabecalho(pdf, pagina, ctx) {
   const { width } = pagina.getSize();
-  pagina.drawText(`PREFEITURA MUNICIPAL DE ${ctx.municipio.nome.toUpperCase()}`,
-    { x: 140, y: 800, size: 10, font: ctx.fonteNegrito });
-  pagina.drawText('SECRETARIA MUNICIPAL DE SAÚDE',
-    { x: 140, y: 788, size: 9, font: ctx.fonteNormal });
+  const faixaSuperior = 800, faixaInferior = 758; // banda onde tudo fica centralizado
+  const meioVertical = (faixaSuperior + faixaInferior) / 2;
 
-  if (ctx.organizacao?.logo_data_url) await desenharLogo(pdf, pagina, ctx.organizacao.logo_data_url, 40, 780);
-  if (ctx.municipio?.logo_data_url)   await desenharLogo(pdf, pagina, ctx.municipio.logo_data_url, width - 90, 780);
+  const colEsquerdaFim = 130, colDireitaInicio = width - 130;
+  const larguraColunaMeio = colDireitaInicio - colEsquerdaFim;
+
+  const linha1 = `PREFEITURA MUNICIPAL DE ${ctx.municipio.nome.toUpperCase()}`;
+  const linha2 = 'SECRETARIA MUNICIPAL DE SAÚDE';
+  const tamanho1 = 10, tamanho2 = 9;
+  const alturaBloco = tamanho1 + 4 + tamanho2;
+  let y = meioVertical + alturaBloco / 2;
+
+  const largura1 = ctx.fonteNegrito.widthOfTextAtSize(linha1, tamanho1);
+  pagina.drawText(linha1, { x: colEsquerdaFim + (larguraColunaMeio - largura1) / 2, y, size: tamanho1, font: ctx.fonteNegrito });
+  y -= tamanho1 + 4;
+  const largura2 = ctx.fonteNormal.widthOfTextAtSize(linha2, tamanho2);
+  pagina.drawText(linha2, { x: colEsquerdaFim + (larguraColunaMeio - largura2) / 2, y, size: tamanho2, font: ctx.fonteNormal });
+
+  if (ctx.organizacao?.logo_data_url)
+    await desenharLogo(pdf, pagina, ctx.organizacao.logo_data_url, 20, faixaInferior, 'esquerda', meioVertical);
+  if (ctx.municipio?.logo_data_url)
+    await desenharLogo(pdf, pagina, ctx.municipio.logo_data_url, width - 20, faixaInferior, 'direita', meioVertical);
 }
 
-async function desenharLogo(pdf, pagina, dataUrl, x, y) {
+async function desenharLogo(pdf, pagina, dataUrl, xReferencia, yBase, alinhamento, yCentro) {
   try {
     if (!/^data:image\/(png|jpe?g)/.test(dataUrl)) return; // svg não entra no PDF
     const base64 = dataUrl.split(',')[1];
     const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
     const img = dataUrl.includes('png') ? await pdf.embedPng(bytes) : await pdf.embedJpg(bytes);
     const altura = 40, largura = altura * (img.width / img.height);
-    pagina.drawImage(img, { x, y, width: largura, height: altura });
+    const x = alinhamento === 'esquerda' ? xReferencia : xReferencia - largura;
+    pagina.drawImage(img, { x, y: yCentro - altura / 2, width: largura, height: altura });
   } catch (e) {
     console.warn('[Vettore] logo não pôde ser embutida na capa:', e.message);
   }
