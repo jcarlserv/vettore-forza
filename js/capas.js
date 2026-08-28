@@ -183,25 +183,25 @@ function baixarBytesComoArquivo(bytes, nomeArquivo) {
 async function desenharCapaPrestacao(pdf, ctx) {
   let pagina = pdf.addPage(A4);
   await desenharCabecalho(pdf, pagina, ctx);
-  centralizar(pagina, ctx.fonteNegrito, 'PRESTAÇÃO DE CONTAS', 24, 600);
-  centralizar(pagina, ctx.fonteNegrito, `${ctx.municipio.nome.toUpperCase()} - ${ctx.municipio.uf}`, 20, 540);
-  centralizar(pagina, ctx.fonteNormal,
-    ctx.capaMun?.subtitulo_prestacao || 'GESTÃO DOS SERVIÇOS DE SAÚDE MUNICIPAL', 16, 460);
-  if (ctx.edital) centralizar(pagina, ctx.fonteNormal, `EDITAL DE CHAMAMENTO PÚBLICO N° ${ctx.edital}`, 16, 438);
-  centralizar(pagina, ctx.fonteNormal, `${MESES_EXTENSO[ctx.mes - 1] || ''} - ${ctx.ano}`, 11, 140);
+  centralizar(pagina, ctx.fonteNegrito, 'PRESTAÇÃO DE CONTAS', 34, 660);
+  centralizar(pagina, ctx.fonteNegrito, `${ctx.municipio.nome.toUpperCase()} - ${ctx.municipio.uf}`, 34, 615);
+  centralizar(pagina, ctx.fonteNegrito,
+    ctx.capaMun?.subtitulo_prestacao || 'GESTÃO DOS SERVIÇOS DE SAÚDE MUNICIPAL', 18, 480);
+  if (ctx.edital) centralizar(pagina, ctx.fonteNegrito, `EDITAL DE CHAMAMENTO PÚBLICO N° ${ctx.edital}`, 18, 456);
+  centralizar(pagina, ctx.fonteNegrito, `${MESES_EXTENSO[ctx.mes - 1] || ''} - ${ctx.ano}`, 14, 140);
 
   pagina = pdf.addPage(A4);
   await desenharCabecalho(pdf, pagina, ctx);
-  centralizar(pagina, ctx.fonteNegrito, `${ctx.municipio.nome.toUpperCase()} - ${ctx.municipio.uf}`, 20, 540);
+  centralizar(pagina, ctx.fonteNegrito, `${ctx.municipio.nome.toUpperCase()} - ${ctx.municipio.uf}`, 24, 540);
   const texto = ctx.capaMun?.texto_organizacao || ctx.organizacao?.razao_social || '';
-  if (texto) quebrarLinhasCentralizado(pagina, ctx.fonteNegrito, texto, 16, 460, 420);
+  if (texto) quebrarLinhasCentralizado(pagina, ctx.fonteNegrito, texto, 18, 460, 420);
 }
 
 async function desenharCapaBloco(pdf, ctx, titulo) {
   const pagina = pdf.addPage(A4);
   await desenharCabecalho(pdf, pagina, ctx);
-  centralizar(pagina, ctx.fonteNegrito, `${ctx.municipio.nome.toUpperCase()} - ${ctx.municipio.uf}`, 20, 540);
-  centralizar(pagina, ctx.fonteNegrito, titulo, 16, 460);
+  centralizar(pagina, ctx.fonteNegrito, `${ctx.municipio.nome.toUpperCase()} - ${ctx.municipio.uf}`, 24, 540);
+  centralizar(pagina, ctx.fonteNegrito, titulo, 18, 460);
 }
 
 async function desenharCabecalho(pdf, pagina, ctx) {
