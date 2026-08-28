@@ -187,12 +187,14 @@ async function tentarLocalizarPrestacao() {
     statusEl.hidden = false;
     statusEl.textContent = StatusRotulo[data.status] || data.status;
     statusEl.className = 'tag ' + (StatusClasse[data.status] || '');
+    document.getElementById('pc-excluir-prestacao').hidden = !pode('prestacao.excluir');
     document.getElementById('pc-blocos').hidden = false;
     await carregarDocumentos();
   } else {
     ContextoPC.prestacaoId = null;
     ContextoPC.status = null;
     editalCampo.value = '';
+    document.getElementById('pc-excluir-prestacao').hidden = true;
     if (!contratoCampo.value) contratoCampo.value = ContextoPC.contratoGestaoNumero;
     if (pode('prestacao.criar')) {
       mostrarAviso(aviso, 'Prestação ainda não aberta para este mês. Preencha e clique em Salvar.', 'ok');
@@ -342,9 +344,11 @@ async function salvarCabecalhoPC() {
   statusEl.hidden = false;
   statusEl.textContent = StatusRotulo[data.status] || data.status;
   statusEl.className = 'tag ' + (StatusClasse[data.status] || '');
+  document.getElementById('pc-excluir-prestacao').hidden = !pode('prestacao.excluir');
   mostrarAviso(aviso, 'Prestação salva.', 'ok');
 
   document.getElementById('pc-blocos').hidden = false;
+  document.getElementById('pc-repetir').hidden = true;
   await carregarDocumentos();
 }
 
@@ -528,6 +532,84 @@ async function excluirDocumento(id, caminho) {
   await carregarDocumentos();
 }
 
+// Apaga todos os arquivos de um bloco (não a prestação em si).
+// Os arquivos que estavam no Supabase Storage são removidos de
+// verdade; os que estavam no Drive ficam lá, como segurança.
+async function excluirArquivosDoBloco(nomeBloco, rotuloBloco) {
+  if (!confirm(`Excluir TODOS os arquivos enviados no bloco "${rotuloBloco}"? Isso não pode ser desfeito.`)) return;
+
+  const catalogo = await garantirCatalogoDocumentos();
+  const chaves = catalogo.filter(c => c.bloco === nomeBloco).map(c => c.chave);
+  if (!chaves.length) return;
+
+  const { data: arquivos } = await sb.from('prestacao_documento')
+    .select('id, arquivo_drive_id, arquivo_url')
+    .eq('prestacao_id', ContextoPC.prestacaoId)
+    .in('chave', chaves);
+
+  if (!arquivos?.length) { await carregarDocumentos(); return; }
+
+  const caminhosStorage = arquivos
+    .filter(a => !a.arquivo_url && a.arquivo_drive_id?.includes('/'))
+    .map(a => a.arquivo_drive_id);
+  if (caminhosStorage.length) {
+    const { error: erroStorage } = await sb.storage.from('prestacao-documentos').remove(caminhosStorage);
+    if (erroStorage) console.error('[Vettore] remover do storage:', erroStorage);
+  }
+
+  const { error } = await sb.from('prestacao_documento')
+    .delete()
+    .in('id', arquivos.map(a => a.id));
+  if (error) {
+    alert('Não foi possível excluir. Confira as permissões.');
+    console.error('[Vettore] excluir arquivos do bloco:', error);
+    return;
+  }
+  registrarAuditoria('prestacao_documento', null, 'EXCLUIR', { bloco: nomeBloco, quantidade: arquivos.length });
+  await carregarDocumentos();
+}
+
+// Apaga a prestação inteira: cabeçalho, arquivos e configurações
+// de subcapa daquele mês (cascade cuida do resto no banco). Os
+// arquivos que estavam no Storage são removidos de verdade; os
+// que estavam no Drive ficam lá, como segurança.
+async function excluirPrestacaoCompleta() {
+  if (!ContextoPC.prestacaoId) return;
+  if (!confirm('Excluir esta prestação de contas inteira — cabeçalho, arquivos e configurações de capa? Isso não pode ser desfeito.')) return;
+  if (!confirm('Tem certeza mesmo? Essa ação não tem volta.')) return;
+
+  const botao = document.getElementById('pc-excluir-prestacao');
+  botao.disabled = true;
+  botao.textContent = 'Excluindo…';
+
+  try {
+    const { data: arquivos } = await sb.from('prestacao_documento')
+      .select('arquivo_drive_id, arquivo_url')
+      .eq('prestacao_id', ContextoPC.prestacaoId);
+
+    const caminhosStorage = (arquivos || [])
+      .filter(a => !a.arquivo_url && a.arquivo_drive_id?.includes('/'))
+      .map(a => a.arquivo_drive_id);
+    if (caminhosStorage.length) {
+      const { error: erroStorage } = await sb.storage.from('prestacao-documentos').remove(caminhosStorage);
+      if (erroStorage) console.error('[Vettore] remover do storage:', erroStorage);
+    }
+
+    const prestacaoId = ContextoPC.prestacaoId;
+    const { error } = await sb.from('prestacao_contas').delete().eq('id', prestacaoId);
+    if (error) throw error;
+
+    registrarAuditoria('prestacao_contas', prestacaoId, 'EXCLUIR');
+    await tentarLocalizarPrestacao();
+  } catch (e) {
+    alert('Não foi possível excluir. Confira as permissões.');
+    console.error('[Vettore] excluir prestacao_contas:', e);
+  } finally {
+    botao.disabled = false;
+    botao.textContent = 'Excluir prestação';
+  }
+}
+
 /* -------- Ligações -------- */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -551,6 +633,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (botaoExcluir) return excluirDocumento(botaoExcluir.dataset.excluirId, botaoExcluir.dataset.excluirCaminho);
     const botaoBaixar = e.target.closest('[data-baixar-bloco]');
     if (botaoBaixar) return baixarBloco(botaoBaixar.dataset.baixarBloco, ROTULO_BLOCO[botaoBaixar.dataset.baixarBloco] || botaoBaixar.dataset.baixarBloco);
+    const botaoExcluirBloco = e.target.closest('[data-excluir-bloco]');
+    if (botaoExcluirBloco) return excluirArquivosDoBloco(botaoExcluirBloco.dataset.excluirBloco, ROTULO_BLOCO[botaoExcluirBloco.dataset.excluirBloco] || botaoExcluirBloco.dataset.excluirBloco);
     const botaoSubcapa = e.target.closest('[data-subcapa-chave]');
     if (botaoSubcapa) alternarSubcapa(botaoSubcapa.dataset.subcapaChave);
   });
@@ -559,4 +643,5 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target.matches('[data-subcapa-titulo]')) salvarTituloSubcapa(e.target.dataset.subcapaTitulo, e.target.value);
   });
   document.getElementById('pc-baixar-tudo')?.addEventListener('click', () => baixarTudo());
+  document.getElementById('pc-excluir-prestacao')?.addEventListener('click', excluirPrestacaoCompleta);
 });
