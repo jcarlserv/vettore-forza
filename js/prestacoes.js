@@ -262,6 +262,30 @@ async function repetirDadosDe() {
       );
     }
 
+    // Arquivos: só os documentos que não aceitam vários (não têm "+"),
+    // porque esses tendem a não mudar de mês a mês. Aponta pro mesmo
+    // arquivo já salvo no Drive — não duplica o upload.
+    const catalogo = await garantirCatalogoDocumentos();
+    const chavesFixas = new Set(catalogo.filter(c => !c.multiplo).map(c => c.chave));
+
+    const { data: arquivosOrigem } = await sb.from('prestacao_documento')
+      .select('*').eq('prestacao_id', origemId);
+
+    const arquivosParaCopiar = (arquivosOrigem || []).filter(a => chavesFixas.has(a.chave));
+    if (arquivosParaCopiar.length) {
+      const { error: erroArquivos } = await sb.from('prestacao_documento').insert(
+        arquivosParaCopiar.map(a => ({
+          prestacao_id: nova.id,
+          chave: a.chave,
+          nome_arquivo: a.nome_arquivo,
+          arquivo_drive_id: a.arquivo_drive_id,
+          arquivo_url: a.arquivo_url,
+          enviado_por: Sessao.perfil.id
+        }))
+      );
+      if (erroArquivos) console.error('[Vettore] copiar arquivos:', erroArquivos);
+    }
+
     registrarAuditoria('prestacao_contas', nova.id, 'INSERIR', { repetido_de: origemId });
     await tentarLocalizarPrestacao();
   } catch (e) {
