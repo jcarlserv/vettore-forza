@@ -316,6 +316,12 @@ function renderBlocoDocumentos(nomeBloco, idContainer, catalogo, porChave, capaP
     }).join('') || '<span class="sub-linha">Nenhum arquivo enviado.</span>';
 
     return `
+      ${podeEditarCapa && capaAtiva ? `
+      <div class="linha-titulo-subcapa" data-chave="${item.chave}">
+        <input type="text" data-subcapa-titulo="${item.chave}"
+               placeholder="${escapar(item.rotulo.toUpperCase())}"
+               value="${escapar(capa?.titulo || '')}">
+      </div>` : ''}
       <div class="linha-documento" data-chave="${item.chave}">
         <span class="rotulo-documento">
           ${podeEditarCapa ? `
@@ -334,13 +340,7 @@ function renderBlocoDocumentos(nomeBloco, idContainer, catalogo, porChave, capaP
               <input type="file" data-enviar-chave="${item.chave}" data-enviar-bloco="${nomeBloco}" hidden>
             </label>` : ''}
         </span>
-      </div>
-      ${podeEditarCapa && capaAtiva ? `
-      <div class="linha-titulo-subcapa" data-chave="${item.chave}">
-        <input type="text" data-subcapa-titulo="${item.chave}"
-               placeholder="${escapar(item.rotulo.toUpperCase())}"
-               value="${escapar(capa?.titulo || '')}">
-      </div>` : ''}`;
+      </div>`;
   }).join('') || '<div class="vazio">Nada registrado neste bloco.</div>';
 }
 

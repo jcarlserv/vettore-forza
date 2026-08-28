@@ -12,6 +12,8 @@ const MESES_EXTENSO = [
   'JULHO', 'AGOSTO', 'SETEMBRO', 'OUTUBRO', 'NOVEMBRO', 'DEZEMBRO'
 ];
 const A4 = [595.28, 841.89];
+const MARGEM = 56.7; // 2cm
+const LARGURA_UTIL = A4[0] - 2 * MARGEM;
 
 async function baixarBloco(nomeBloco, rotuloBloco) {
   const botao = document.querySelector(`[data-baixar-bloco="${nomeBloco}"]`);
@@ -137,7 +139,7 @@ async function montarConteudoBloco(pdfFinal, ctx, nomeBloco, rotuloBloco) {
 // completo — separa visualmente cada documento dentro do bloco.
 function desenharSubcapa(pdf, ctx, subtitulo) {
   const pagina = pdf.addPage(A4);
-  centralizar(pagina, ctx.fonteNegrito, subtitulo, 20, 420);
+  centralizarAjustado(pagina, ctx.fonteNegrito, subtitulo, 20, 420);
 }
 
 /* -------- Buscar e anexar cada arquivo -------- */
@@ -198,19 +200,19 @@ function baixarBytesComoArquivo(bytes, nomeArquivo) {
 async function desenharCapaPrestacao(pdf, ctx) {
   const pagina = pdf.addPage(A4);
   await desenharCabecalho(pdf, pagina, ctx);
-  centralizar(pagina, ctx.fonteNegrito, 'PRESTAÇÃO DE CONTAS', 34, 660);
-  centralizar(pagina, ctx.fonteNegrito, `${ctx.municipio.nome.toUpperCase()} - ${ctx.municipio.uf}`, 34, 615);
-  centralizar(pagina, ctx.fonteNegrito,
+  centralizarAjustado(pagina, ctx.fonteNegrito, 'PRESTAÇÃO DE CONTAS', 34, 660);
+  centralizarAjustado(pagina, ctx.fonteNegrito, `${ctx.municipio.nome.toUpperCase()} - ${ctx.municipio.uf}`, 34, 615);
+  centralizarAjustado(pagina, ctx.fonteNegrito,
     ctx.capaMun?.subtitulo_prestacao || 'GESTÃO DOS SERVIÇOS DE SAÚDE MUNICIPAL', 18, 480);
-  if (ctx.edital) centralizar(pagina, ctx.fonteNegrito, `EDITAL DE CHAMAMENTO PÚBLICO N° ${ctx.edital}`, 18, 456);
-  centralizar(pagina, ctx.fonteNegrito, `${MESES_EXTENSO[ctx.mes - 1] || ''} - ${ctx.ano}`, 14, 140);
+  if (ctx.edital) centralizarAjustado(pagina, ctx.fonteNegrito, ctx.edital, 18, 456);
+  centralizarAjustado(pagina, ctx.fonteNegrito, `${MESES_EXTENSO[ctx.mes - 1] || ''} - ${ctx.ano}`, 14, 140);
 }
 
 async function desenharCapaBloco(pdf, ctx, titulo) {
   const pagina = pdf.addPage(A4);
   await desenharCabecalho(pdf, pagina, ctx);
-  centralizar(pagina, ctx.fonteNegrito, `${ctx.municipio.nome.toUpperCase()} - ${ctx.municipio.uf}`, 24, 540);
-  centralizar(pagina, ctx.fonteNegrito, titulo, 18, 460);
+  centralizarAjustado(pagina, ctx.fonteNegrito, `${ctx.municipio.nome.toUpperCase()} - ${ctx.municipio.uf}`, 24, 540);
+  centralizarAjustado(pagina, ctx.fonteNegrito, titulo, 18, 460);
 }
 
 // Cabeçalho em 3 colunas: logo da organização à esquerda, texto
@@ -260,6 +262,15 @@ function centralizar(pagina, fonte, texto, tamanho, y) {
   const { width } = pagina.getSize();
   const largura = fonte.widthOfTextAtSize(texto, tamanho);
   pagina.drawText(texto, { x: (width - largura) / 2, y, size: tamanho, font: fonte });
+}
+
+// Igual a centralizar(), mas se o texto não couber na largura útil
+// (página menos as margens de 2cm), encolhe a fonte até caber —
+// nunca some da tela nem empurra o que vem depois de posição.
+function centralizarAjustado(pagina, fonte, texto, tamanhoDesejado, y) {
+  let tamanho = tamanhoDesejado;
+  while (tamanho > 8 && fonte.widthOfTextAtSize(texto, tamanho) > LARGURA_UTIL) tamanho -= 1;
+  centralizar(pagina, fonte, texto, tamanho, y);
 }
 
 function quebrarLinhasCentralizado(pagina, fonte, texto, tamanho, yInicial, larguraMax) {

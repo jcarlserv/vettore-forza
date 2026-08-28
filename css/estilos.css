@@ -808,10 +808,13 @@ td.acoes { text-align: right; white-space: nowrap; }
   background: var(--marca); border-color: var(--marca); color: #fff;
 }
 .linha-titulo-subcapa {
-  padding: 0 0 10px 28px;
+  padding: 10px 0 0 28px;
 }
 .linha-titulo-subcapa input {
-  width: 100%; max-width: 360px; font-size: 13px;
+  width: 100%; max-width: 360px; font-size: 12px;
+  font-family: "IBM Plex Mono", monospace;
+  letter-spacing: .04em;
+  color: var(--tinta-70);
 }
 
 /* ---------- Responsivo ---------- */
