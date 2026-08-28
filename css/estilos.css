@@ -807,6 +807,15 @@ td.acoes { text-align: right; white-space: nowrap; }
 .linha-fornecedor:last-child { border-bottom: none; }
 .linha-fornecedor .campo { margin-bottom: 0; }
 
+.linha-ordem-bloco {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--linha);
+}
+.linha-ordem-bloco:last-child { border-bottom: none; }
+.linha-ordem-bloco .nome-bloco { flex: 1; font-size: 14px; }
+.linha-ordem-bloco input[type="number"] { width: 80px; }
+
 .botao-subcapa {
   display: inline-flex; align-items: center; justify-content: center;
   width: 20px; height: 20px;

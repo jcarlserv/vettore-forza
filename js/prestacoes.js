@@ -27,6 +27,7 @@ const ContextoPC = {
 };
 
 let CATALOGO_DOCUMENTOS = null; // cache: carregado uma vez por sessão
+let CATALOGO_BLOCOS = null;     // cache: ordem/rótulo próprio de cada bloco
 
 /* -------- Início: cards de município -------- */
 
@@ -362,10 +363,23 @@ async function garantirCatalogoDocumentos() {
   return data;
 }
 
+async function garantirCatalogoBlocos() {
+  if (CATALOGO_BLOCOS) return CATALOGO_BLOCOS;
+  const { data, error } = await sb.from('bloco_catalogo').select('*').order('ordem');
+  if (error) { console.error('[Vettore] bloco_catalogo:', error); return []; }
+  CATALOGO_BLOCOS = data || [];
+  return CATALOGO_BLOCOS;
+}
+
 async function carregarDocumentos() {
   if (!ContextoPC.prestacaoId) return;
   const catalogo = await garantirCatalogoDocumentos();
-  const blocos = [...new Set(catalogo.map(c => c.bloco))];
+  const catalogoBlocos = await garantirCatalogoBlocos();
+  const ordemPorBloco = {};
+  catalogoBlocos.forEach(b => { ordemPorBloco[b.chave] = b.ordem; });
+
+  const blocos = [...new Set(catalogo.map(c => c.bloco))]
+    .sort((a, b) => (ordemPorBloco[a] ?? 999) - (ordemPorBloco[b] ?? 999));
 
   const [{ data: arquivos, error }, { data: capasDocumento }] = await Promise.all([
     sb.from('prestacao_documento').select('*').eq('prestacao_id', ContextoPC.prestacaoId).order('enviado_em'),
@@ -412,7 +426,8 @@ async function carregarDocumentos() {
 }
 
 function rotuloDoBloco(chave) {
-  return ROTULO_BLOCO[chave] ||
+  const doBanco = CATALOGO_BLOCOS?.find(b => b.chave === chave)?.rotulo;
+  return doBanco || ROTULO_BLOCO[chave] ||
     chave.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 }
 

@@ -50,6 +50,7 @@ async function iniciar() {
 
   // Organização
   document.getElementById('form-org').addEventListener('submit', salvarOrganizacao);
+  document.getElementById('salvar-ordem-blocos')?.addEventListener('click', salvarOrdemBlocos);
   ligarCampoLogo('arquivo-logo-org', 'previa-logo-org', 'aviso-org', 'remover-logo-org');
   ligarBuscaCnpj('org-cnpj', 'buscar-cnpj-org', 'aviso-org', {
     razao_social: 'org-razao', nome_fantasia: 'org-fantasia',

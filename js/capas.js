@@ -63,7 +63,11 @@ async function baixarTudo() {
     await desenharCapaPrestacao(pdfFinal, ctx);
 
     const catalogo = await garantirCatalogoDocumentos();
-    const blocos = [...new Set(catalogo.map(c => c.bloco))];
+    const catalogoBlocos = await garantirCatalogoBlocos();
+    const ordemPorBloco = {};
+    catalogoBlocos.forEach(b => { ordemPorBloco[b.chave] = b.ordem; });
+    const blocos = [...new Set(catalogo.map(c => c.bloco))]
+      .sort((a, b) => (ordemPorBloco[a] ?? 999) - (ordemPorBloco[b] ?? 999));
 
     let ignorados = [];
     for (const bloco of blocos) {

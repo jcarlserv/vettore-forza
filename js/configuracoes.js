@@ -41,6 +41,8 @@ async function carregarOrganizacao() {
   if (!data) return;
   Sessao.organizacao = data;
 
+  await carregarOrdemBlocos();
+
   const campos = {
     'org-cnpj': 'cnpj', 'org-razao': 'razao_social', 'org-fantasia': 'nome_fantasia',
     'org-email': 'email_suporte', 'org-telefone': 'telefone',
@@ -92,6 +94,40 @@ async function salvarOrganizacao(evento) {
   mostrarAviso(aviso, 'Organização salva.', 'ok');
   registrarAuditoria('organizacao', Sessao.organizacao.id, 'ALTERAR');
   await carregarIdentidadeVisual();
+}
+
+/* -------- Ordem dos blocos (vale pra todos os municípios) -------- */
+
+async function carregarOrdemBlocos() {
+  const { data: blocos } = await sb.from('bloco_catalogo').select('*').order('ordem');
+  const area = document.getElementById('area-ordem-blocos');
+  if (!area) return;
+
+  area.innerHTML = (blocos || []).map(b => `
+    <div class="linha-ordem-bloco" data-bloco-chave="${b.chave}">
+      <span class="nome-bloco">${escapar(b.rotulo)}</span>
+      <input type="number" data-bloco-ordem="${b.chave}" value="${b.ordem}" min="1">
+    </div>`).join('') || '<div class="vazio">Nenhum bloco cadastrado ainda.</div>';
+}
+
+async function salvarOrdemBlocos() {
+  const aviso = document.getElementById('aviso-ordem-blocos');
+  limparAviso(aviso);
+
+  const linhas = [...document.querySelectorAll('[data-bloco-ordem]')].map(el => ({
+    chave: el.dataset.blocoOrdem,
+    ordem: Number(el.value) || 100
+  }));
+  if (!linhas.length) return;
+
+  for (const l of linhas) {
+    const { error } = await sb.from('bloco_catalogo').update({ ordem: l.ordem }).eq('chave', l.chave);
+    if (error) { mostrarAviso(aviso, 'Não foi possível salvar: ' + error.message); return; }
+  }
+
+  CATALOGO_BLOCOS = null; // limpa o cache pra pegar a ordem nova na próxima vez
+  registrarAuditoria('bloco_catalogo', null, 'ALTERAR');
+  mostrarAviso(aviso, 'Ordem salva.', 'ok');
 }
 
 /* -------- Tema -------- */

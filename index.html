@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<link rel="icon" href="favicon.ico?v=0.23.0">
+<link rel="icon" href="favicon.ico?v=0.24.0">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vettore — Prestação de Contas</title>
@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 
-<link rel="stylesheet" href="css/estilos.css?v=0.23.0">
+<link rel="stylesheet" href="css/estilos.css?v=0.24.0">
 </head>
 <body>
 
@@ -299,6 +299,15 @@
             <button type="submit" class="botao" style="margin-top:18px"
                     data-permissao="config.organizacao.editar">Salvar organização</button>
           </form>
+
+          <div class="divisor-secao"><span>Ordem dos blocos da Prestação de Contas</span></div>
+          <p class="rodape-nota" style="margin:0 0 12px">
+            Vale pra todos os municípios. Números menores aparecem primeiro.
+          </p>
+          <div id="area-ordem-blocos"></div>
+          <button type="button" class="botao neutro" id="salvar-ordem-blocos"
+                  data-permissao="config.organizacao.editar" style="margin-top:12px">Salvar ordem dos blocos</button>
+          <div id="aviso-ordem-blocos" class="aviso" hidden></div>
         </div>
       </div>
 
@@ -650,14 +659,14 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-<script src="js/config.js?v=0.23.0"></script>
-<script src="js/api.js?v=0.23.0"></script>
-<script src="js/autenticacao.js?v=0.23.0"></script>
-<script src="js/municipios-ce.js?v=0.23.0"></script>
-<script src="js/cadastros-util.js?v=0.23.0"></script>
-<script src="js/configuracoes.js?v=0.23.0"></script>
-<script src="js/prestacoes.js?v=0.23.0"></script>
-<script src="js/capas.js?v=0.23.0"></script>
-<script src="js/app.js?v=0.23.0"></script>
+<script src="js/config.js?v=0.24.0"></script>
+<script src="js/api.js?v=0.24.0"></script>
+<script src="js/autenticacao.js?v=0.24.0"></script>
+<script src="js/municipios-ce.js?v=0.24.0"></script>
+<script src="js/cadastros-util.js?v=0.24.0"></script>
+<script src="js/configuracoes.js?v=0.24.0"></script>
+<script src="js/prestacoes.js?v=0.24.0"></script>
+<script src="js/capas.js?v=0.24.0"></script>
+<script src="js/app.js?v=0.24.0"></script>
 </body>
 </html>
