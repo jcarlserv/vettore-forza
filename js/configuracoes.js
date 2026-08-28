@@ -270,16 +270,14 @@ async function carregarCapasDoMunicipio(municipioId) {
   const blocos = [...new Set(catalogo.map(c => c.bloco))];
   const rotulos = { organizacao: 'Dados da Organização', financeiro: 'Financeiro' };
 
-  let capaGeral = null, titulosBloco = {}, configDocumentos = {};
+  let capaGeral = null, titulosBloco = {};
   if (municipioId) {
-    const [{ data: cg }, { data: tb }, { data: cd }] = await Promise.all([
+    const [{ data: cg }, { data: tb }] = await Promise.all([
       sb.from('capa_municipio').select('*').eq('municipio_id', municipioId).maybeSingle(),
-      sb.from('capa_bloco_titulo').select('*').eq('municipio_id', municipioId),
-      sb.from('capa_documento_config').select('*').eq('municipio_id', municipioId)
+      sb.from('capa_bloco_titulo').select('*').eq('municipio_id', municipioId)
     ]);
     capaGeral = cg;
     (tb || []).forEach(t => { titulosBloco[t.bloco] = t.titulo; });
-    (cd || []).forEach(c => { configDocumentos[c.chave] = c; });
   }
 
   document.getElementById('mun-capa-subtitulo').value =
@@ -291,19 +289,6 @@ async function carregarCapasDoMunicipio(municipioId) {
       <input type="text" id="capa-bloco-${b}" data-bloco="${b}"
              value="${escapar(titulosBloco[b] || (rotulos[b] || b).toUpperCase())}">
     </div>`).join('');
-
-  document.getElementById('capas-documentos').innerHTML = catalogo.map(item => {
-    const cfg = configDocumentos[item.chave];
-    return `
-      <div class="linha-subcapa">
-        <label class="nome-documento">
-          <input type="checkbox" data-subcapa-chave="${item.chave}" ${cfg?.tem_subcapa ? 'checked' : ''}>
-          ${escapar(item.rotulo)}
-        </label>
-        <input type="text" data-subcapa-titulo="${item.chave}" placeholder="${escapar(item.rotulo.toUpperCase())}"
-               value="${escapar(cfg?.titulo || '')}">
-      </div>`;
-  }).join('');
 }
 
 async function salvarCapasDoMunicipio(municipioId) {
@@ -324,19 +309,6 @@ async function salvarCapasDoMunicipio(municipioId) {
   }));
   if (linhasBloco.length)
     await sb.from('capa_bloco_titulo').upsert(linhasBloco, { onConflict: 'municipio_id,bloco' });
-
-  const linhasDocumento = [...document.querySelectorAll('#capas-documentos [data-subcapa-chave]')].map(cb => {
-    const chave = cb.dataset.subcapaChave;
-    const tituloEl = document.querySelector(`[data-subcapa-titulo="${chave}"]`);
-    return {
-      municipio_id: municipioId,
-      chave,
-      tem_subcapa: cb.checked,
-      titulo: tituloEl.value.trim() || null
-    };
-  });
-  if (linhasDocumento.length)
-    await sb.from('capa_documento_config').upsert(linhasDocumento, { onConflict: 'municipio_id,chave' });
 }
 
 // Preenche o código IBGE quando o nome digitado bate com a lista.

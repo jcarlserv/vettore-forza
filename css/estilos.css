@@ -793,6 +793,27 @@ td.acoes { text-align: right; white-space: nowrap; }
 .linha-subcapa .nome-documento { flex: 0 0 220px; font-size: 13px; }
 .linha-subcapa input[type="text"] { flex: 1; }
 
+.botao-subcapa {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px;
+  margin-right: 8px;
+  border: 1px solid var(--linha);
+  border-radius: 50%;
+  background: var(--papel);
+  color: var(--tinta-40);
+  font-size: 13px; line-height: 1;
+  cursor: pointer;
+}
+.botao-subcapa.ativo {
+  background: var(--marca); border-color: var(--marca); color: #fff;
+}
+.linha-titulo-subcapa {
+  padding: 0 0 10px 28px;
+}
+.linha-titulo-subcapa input {
+  width: 100%; max-width: 360px; font-size: 13px;
+}
+
 /* ---------- Responsivo ---------- */
 
 @media (max-width: 767px) {

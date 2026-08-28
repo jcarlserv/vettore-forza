@@ -265,10 +265,10 @@ async function carregarDocumentos() {
   if (!ContextoPC.prestacaoId) return;
   const catalogo = await garantirCatalogoDocumentos();
 
-  const { data: arquivos, error } = await sb.from('prestacao_documento')
-    .select('*')
-    .eq('prestacao_id', ContextoPC.prestacaoId)
-    .order('enviado_em');
+  const [{ data: arquivos, error }, { data: capasDocumento }] = await Promise.all([
+    sb.from('prestacao_documento').select('*').eq('prestacao_id', ContextoPC.prestacaoId).order('enviado_em'),
+    sb.from('prestacao_documento_capa').select('*').eq('prestacao_id', ContextoPC.prestacaoId)
+  ]);
 
   if (error) { console.error('[Vettore] prestacao_documento:', error); return; }
 
@@ -285,19 +285,25 @@ async function carregarDocumentos() {
   const porChave = {};
   (arquivos || []).forEach(a => { (porChave[a.chave] = porChave[a.chave] || []).push(a); });
 
-  renderBlocoDocumentos('organizacao', 'pc-doc-organizacao', catalogo, porChave);
-  renderBlocoDocumentos('financeiro', 'pc-doc-financeiro', catalogo, porChave);
+  const capaPorChave = {};
+  (capasDocumento || []).forEach(c => { capaPorChave[c.chave] = c; });
+
+  renderBlocoDocumentos('organizacao', 'pc-doc-organizacao', catalogo, porChave, capaPorChave);
+  renderBlocoDocumentos('financeiro', 'pc-doc-financeiro', catalogo, porChave, capaPorChave);
 }
 
-function renderBlocoDocumentos(nomeBloco, idContainer, catalogo, porChave) {
+function renderBlocoDocumentos(nomeBloco, idContainer, catalogo, porChave, capaPorChave) {
   const container = document.getElementById(idContainer);
   const itens = catalogo.filter(c => c.bloco === nomeBloco);
   const podeEnviar = pode('prestacao.enviar_arquivo');
   const podeExcluir = pode('prestacao.excluir_arquivo');
+  const podeEditarCapa = pode('prestacao.criar');
 
   container.innerHTML = itens.map(item => {
     const arquivos = porChave[item.chave] || [];
     const mostrarBotaoEnviar = podeEnviar && (item.multiplo || arquivos.length === 0);
+    const capa = capaPorChave[item.chave];
+    const capaAtiva = !!capa?.tem_subcapa;
 
     const chips = arquivos.map(a => {
       const link = a.arquivo_url || a._urlAssinada;
@@ -311,7 +317,15 @@ function renderBlocoDocumentos(nomeBloco, idContainer, catalogo, porChave) {
 
     return `
       <div class="linha-documento" data-chave="${item.chave}">
-        <span class="rotulo-documento">${escapar(item.rotulo)}</span>
+        <span class="rotulo-documento">
+          ${podeEditarCapa ? `
+            <button type="button" class="botao-subcapa ${capaAtiva ? 'ativo' : ''}"
+                    data-subcapa-chave="${item.chave}"
+                    title="${capaAtiva ? 'Remover subcapa' : 'Incluir subcapa antes deste documento'}">
+              ${capaAtiva ? '✓' : '+'}
+            </button>` : ''}
+          ${escapar(item.rotulo)}
+        </span>
         <span class="arquivos-documento">${chips}</span>
         <span class="acoes-documento">
           ${mostrarBotaoEnviar ? `
@@ -320,8 +334,38 @@ function renderBlocoDocumentos(nomeBloco, idContainer, catalogo, porChave) {
               <input type="file" data-enviar-chave="${item.chave}" data-enviar-bloco="${nomeBloco}" hidden>
             </label>` : ''}
         </span>
-      </div>`;
+      </div>
+      ${podeEditarCapa && capaAtiva ? `
+      <div class="linha-titulo-subcapa" data-chave="${item.chave}">
+        <input type="text" data-subcapa-titulo="${item.chave}"
+               placeholder="${escapar(item.rotulo.toUpperCase())}"
+               value="${escapar(capa?.titulo || '')}">
+      </div>` : ''}`;
   }).join('') || '<div class="vazio">Nada registrado neste bloco.</div>';
+}
+
+async function alternarSubcapa(chave) {
+  const { data: atual } = await sb.from('prestacao_documento_capa')
+    .select('*').eq('prestacao_id', ContextoPC.prestacaoId).eq('chave', chave).maybeSingle();
+
+  const { error } = await sb.from('prestacao_documento_capa').upsert({
+    prestacao_id: ContextoPC.prestacaoId,
+    chave,
+    tem_subcapa: !atual?.tem_subcapa,
+    titulo: atual?.titulo || null
+  }, { onConflict: 'prestacao_id,chave' });
+
+  if (error) { alert('Não foi possível salvar.'); console.error('[Vettore] subcapa:', error); return; }
+  await carregarDocumentos();
+}
+
+async function salvarTituloSubcapa(chave, titulo) {
+  await sb.from('prestacao_documento_capa').upsert({
+    prestacao_id: ContextoPC.prestacaoId,
+    chave,
+    tem_subcapa: true,
+    titulo: titulo.trim() || null
+  }, { onConflict: 'prestacao_id,chave' });
 }
 
 async function enviarDocumento(inputEl) {
@@ -404,14 +448,17 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('pc-ano')?.addEventListener('change', tentarLocalizarPrestacao);
   document.getElementById('pc-salvar-cabecalho')?.addEventListener('click', salvarCabecalhoPC);
 
-  document.getElementById('pc-blocos')?.addEventListener('change', e => {
-    if (e.target.matches('[data-enviar-chave]')) enviarDocumento(e.target);
-  });
   document.getElementById('pc-blocos')?.addEventListener('click', e => {
     const botaoExcluir = e.target.closest('[data-excluir-id]');
     if (botaoExcluir) return excluirDocumento(botaoExcluir.dataset.excluirId, botaoExcluir.dataset.excluirCaminho);
     const botaoBaixar = e.target.closest('[data-baixar-bloco]');
-    if (botaoBaixar) baixarBloco(botaoBaixar.dataset.baixarBloco, ROTULO_BLOCO[botaoBaixar.dataset.baixarBloco] || botaoBaixar.dataset.baixarBloco);
+    if (botaoBaixar) return baixarBloco(botaoBaixar.dataset.baixarBloco, ROTULO_BLOCO[botaoBaixar.dataset.baixarBloco] || botaoBaixar.dataset.baixarBloco);
+    const botaoSubcapa = e.target.closest('[data-subcapa-chave]');
+    if (botaoSubcapa) alternarSubcapa(botaoSubcapa.dataset.subcapaChave);
+  });
+  document.getElementById('pc-blocos')?.addEventListener('change', e => {
+    if (e.target.matches('[data-enviar-chave]')) enviarDocumento(e.target);
+    if (e.target.matches('[data-subcapa-titulo]')) salvarTituloSubcapa(e.target.dataset.subcapaTitulo, e.target.value);
   });
   document.getElementById('pc-baixar-tudo')?.addEventListener('click', () => baixarTudo());
 });

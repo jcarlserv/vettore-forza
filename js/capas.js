@@ -116,19 +116,18 @@ async function montarConteudoBloco(pdfFinal, ctx, nomeBloco, rotuloBloco) {
   const itens = catalogo.filter(c => c.bloco === nomeBloco);
   const { data: arquivos } = await sb.from('prestacao_documento')
     .select('*').eq('prestacao_id', ContextoPC.prestacaoId).order('enviado_em');
-  const { data: configsDocumento } = await sb.from('capa_documento_config')
-    .select('*').eq('municipio_id', ContextoPC.municipioId);
-  const configPorChave = {};
-  (configsDocumento || []).forEach(c => { configPorChave[c.chave] = c; });
+  const { data: capasDocumento } = await sb.from('prestacao_documento_capa')
+    .select('*').eq('prestacao_id', ContextoPC.prestacaoId);
+  const capaPorChave = {};
+  (capasDocumento || []).forEach(c => { capaPorChave[c.chave] = c; });
 
   const ignorados = [];
   for (const item of itens) {
     const doItem = (arquivos || []).filter(a => a.chave === item.chave);
-    const config = configPorChave[item.chave];
-    // Config por município tem prioridade; sem ela, vale o padrão do catálogo.
-    const temSubcapa = config ? config.tem_subcapa : item.tem_subcapa;
-    const tituloSubcapa = (config?.titulo || item.rotulo).toUpperCase();
-    if (temSubcapa && doItem.length) desenharSubcapa(pdfFinal, ctx, tituloSubcapa);
+    const capa = capaPorChave[item.chave];
+    if (capa?.tem_subcapa && doItem.length) {
+      desenharSubcapa(pdfFinal, ctx, (capa.titulo || item.rotulo).toUpperCase());
+    }
     for (const a of doItem) await anexarArquivo(pdfFinal, a, ignorados);
   }
   return ignorados;
