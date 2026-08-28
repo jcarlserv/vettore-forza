@@ -50,7 +50,15 @@ async function iniciar() {
 
   // Organização
   document.getElementById('form-org').addEventListener('submit', salvarOrganizacao);
-  document.getElementById('salvar-ordem-blocos')?.addEventListener('click', salvarOrdemBlocos);
+  document.getElementById('adicionar-bloco')?.addEventListener('click', adicionarBlocoNovo);
+  document.getElementById('area-blocos-editor')?.addEventListener('click', e => {
+    const btnSalvarBloco = e.target.closest('[data-salvar-bloco]');
+    if (btnSalvarBloco) return salvarBlocoEditor(btnSalvarBloco.closest('[data-bloco-chave]'));
+    const btnAdicionarDoc = e.target.closest('[data-adicionar-doc]');
+    if (btnAdicionarDoc) return adicionarDocEditor(btnAdicionarDoc.closest('[data-bloco-chave]'));
+    const btnSalvarDoc = e.target.closest('[data-salvar-doc]');
+    if (btnSalvarDoc) return salvarDocEditor(btnSalvarDoc.closest('[data-doc-chave]'));
+  });
   ligarCampoLogo('arquivo-logo-org', 'previa-logo-org', 'aviso-org', 'remover-logo-org');
   ligarBuscaCnpj('org-cnpj', 'buscar-cnpj-org', 'aviso-org', {
     razao_social: 'org-razao', nome_fantasia: 'org-fantasia',

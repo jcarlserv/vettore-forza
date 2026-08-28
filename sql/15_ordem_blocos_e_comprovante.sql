@@ -42,3 +42,7 @@ create policy bloco_catalogo_ler on bloco_catalogo
 
 -- Pra mudar a ordem ou o nome de um bloco depois, uma linha assim:
 -- select registrar_bloco('financeiro', 'Financeiro', 15);
+
+-- Remove a versão antiga (5 parâmetros) da função — ficou duplicada
+-- desde o 09_subcapas.sql, causando "function is not unique".
+drop function if exists registrar_documento(text, text, text, boolean, integer);

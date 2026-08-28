@@ -96,38 +96,139 @@ async function salvarOrganizacao(evento) {
   await carregarIdentidadeVisual();
 }
 
-/* -------- Ordem dos blocos (vale pra todos os municípios) -------- */
+/* -------- Editor de blocos e documentos (vale pra todos os municípios) -------- */
 
-async function carregarOrdemBlocos() {
-  const { data: blocos } = await sb.from('bloco_catalogo').select('*').order('ordem');
-  const area = document.getElementById('area-ordem-blocos');
-  if (!area) return;
-
-  area.innerHTML = (blocos || []).map(b => `
-    <div class="linha-ordem-bloco" data-bloco-chave="${b.chave}">
-      <span class="nome-bloco">${escapar(b.rotulo)}</span>
-      <input type="number" data-bloco-ordem="${b.chave}" value="${b.ordem}" min="1">
-    </div>`).join('') || '<div class="vazio">Nenhum bloco cadastrado ainda.</div>';
+function slugificar(texto) {
+  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
 }
 
-async function salvarOrdemBlocos() {
-  const aviso = document.getElementById('aviso-ordem-blocos');
-  limparAviso(aviso);
+async function carregarOrdemBlocos() {
+  const [{ data: blocos }, { data: documentos }] = await Promise.all([
+    sb.from('bloco_catalogo').select('*').order('ordem'),
+    sb.from('documento_catalogo').select('*').order('ordem')
+  ]);
+  renderEditorBlocos(blocos || [], documentos || []);
+}
 
-  const linhas = [...document.querySelectorAll('[data-bloco-ordem]')].map(el => ({
-    chave: el.dataset.blocoOrdem,
-    ordem: Number(el.value) || 100
-  }));
-  if (!linhas.length) return;
+function renderEditorBlocos(blocos, documentos) {
+  const area = document.getElementById('area-blocos-editor');
+  if (!area) return;
+  const podeEditar = pode('config.organizacao.editar');
 
-  for (const l of linhas) {
-    const { error } = await sb.from('bloco_catalogo').update({ ordem: l.ordem }).eq('chave', l.chave);
-    if (error) { mostrarAviso(aviso, 'Não foi possível salvar: ' + error.message); return; }
-  }
+  area.innerHTML = blocos.map(b => {
+    const itens = documentos.filter(d => d.bloco === b.chave);
+    return `
+      <div class="bloco-editor" data-bloco-chave="${escapar(b.chave)}">
+        <div class="linha-bloco-editor">
+          <input type="text" data-bloco-rotulo value="${escapar(b.rotulo)}" ${podeEditar ? '' : 'disabled'}>
+          <input type="number" data-bloco-ordem value="${b.ordem}" min="1" ${podeEditar ? '' : 'disabled'}>
+          ${podeEditar ? `<button type="button" class="botao neutro pequeno" data-salvar-bloco>Salvar</button>` : ''}
+        </div>
+        <div class="lista-doc-editor">
+          ${itens.map(d => `
+            <div class="linha-doc-editor" data-doc-chave="${escapar(d.chave)}">
+              <input type="text" data-doc-rotulo value="${escapar(d.rotulo)}" ${podeEditar ? '' : 'disabled'}>
+              <input type="number" data-doc-ordem value="${d.ordem}" min="1" ${podeEditar ? '' : 'disabled'}>
+              <label class="check-varios">
+                <input type="checkbox" data-doc-multiplo ${d.multiplo ? 'checked' : ''} ${podeEditar ? '' : 'disabled'}>
+                Aceita vários / muda todo mês
+              </label>
+              ${podeEditar ? `<button type="button" class="botao neutro pequeno" data-salvar-doc>Salvar</button>` : ''}
+            </div>`).join('')}
+          ${podeEditar ? `
+          <div class="linha-cnpj" style="margin-top:8px">
+            <div class="campo" style="margin:0;flex:1">
+              <input type="text" data-novo-doc-nome placeholder="Nome do novo documento">
+            </div>
+            <button type="button" class="botao neutro pequeno" data-adicionar-doc>+ Novo documento</button>
+          </div>` : ''}
+        </div>
+      </div>`;
+  }).join('') || '<div class="vazio">Nenhum bloco cadastrado ainda.</div>';
+}
 
-  CATALOGO_BLOCOS = null; // limpa o cache pra pegar a ordem nova na próxima vez
-  registrarAuditoria('bloco_catalogo', null, 'ALTERAR');
-  mostrarAviso(aviso, 'Ordem salva.', 'ok');
+async function salvarBlocoEditor(painel) {
+  const chave = painel.dataset.blocoChave;
+  const rotulo = painel.querySelector('[data-bloco-rotulo]').value.trim();
+  const ordem = Number(painel.querySelector('[data-bloco-ordem]').value) || 100;
+  const aviso = document.getElementById('aviso-blocos-editor');
+  if (!rotulo) return mostrarAviso(aviso, 'Informe o nome do bloco.');
+
+  const { error } = await sb.rpc('registrar_bloco', { p_chave: chave, p_rotulo: rotulo, p_ordem: ordem });
+  if (error) return mostrarAviso(aviso, 'Não foi possível salvar: ' + error.message);
+
+  if (typeof CATALOGO_BLOCOS !== 'undefined') CATALOGO_BLOCOS = null;
+  mostrarAviso(aviso, 'Bloco salvo.', 'ok');
+  registrarAuditoria('bloco_catalogo', chave, 'ALTERAR');
+  await carregarOrdemBlocos();
+}
+
+async function adicionarBlocoNovo() {
+  const input = document.getElementById('novo-bloco-nome');
+  const aviso = document.getElementById('aviso-blocos-editor');
+  const nome = input.value.trim();
+  if (!nome) return;
+  const chave = slugificar(nome);
+  if (!chave) return mostrarAviso(aviso, 'Nome inválido.');
+
+  const { data: maiorOrdem } = await sb.from('bloco_catalogo')
+    .select('ordem').order('ordem', { ascending: false }).limit(1).maybeSingle();
+  const ordem = (maiorOrdem?.ordem || 0) + 10;
+
+  const { error } = await sb.rpc('registrar_bloco', { p_chave: chave, p_rotulo: nome, p_ordem: ordem });
+  if (error) return mostrarAviso(aviso, 'Não foi possível criar: ' + error.message);
+
+  input.value = '';
+  if (typeof CATALOGO_BLOCOS !== 'undefined') CATALOGO_BLOCOS = null;
+  mostrarAviso(aviso, 'Bloco criado.', 'ok');
+  registrarAuditoria('bloco_catalogo', chave, 'INSERIR');
+  await carregarOrdemBlocos();
+}
+
+async function salvarDocEditor(linha) {
+  const chave = linha.dataset.docChave;
+  const bloco = linha.closest('[data-bloco-chave]').dataset.blocoChave;
+  const rotulo = linha.querySelector('[data-doc-rotulo]').value.trim();
+  const ordem = Number(linha.querySelector('[data-doc-ordem]').value) || 100;
+  const multiplo = linha.querySelector('[data-doc-multiplo]').checked;
+  const aviso = document.getElementById('aviso-blocos-editor');
+  if (!rotulo) return mostrarAviso(aviso, 'Informe o nome do documento.');
+
+  const { error } = await sb.rpc('registrar_documento', {
+    p_chave: chave, p_bloco: bloco, p_rotulo: rotulo, p_multiplo: multiplo, p_ordem: ordem
+  });
+  if (error) return mostrarAviso(aviso, 'Não foi possível salvar: ' + error.message);
+
+  if (typeof CATALOGO_DOCUMENTOS !== 'undefined') CATALOGO_DOCUMENTOS = null;
+  mostrarAviso(aviso, 'Documento salvo.', 'ok');
+  registrarAuditoria('documento_catalogo', chave, 'ALTERAR');
+  await carregarOrdemBlocos();
+}
+
+async function adicionarDocEditor(painel) {
+  const bloco = painel.dataset.blocoChave;
+  const input = painel.querySelector('[data-novo-doc-nome]');
+  const aviso = document.getElementById('aviso-blocos-editor');
+  const nome = input.value.trim();
+  if (!nome) return;
+  const chave = slugificar(nome);
+  if (!chave) return mostrarAviso(aviso, 'Nome inválido.');
+
+  const { data: maiorOrdem } = await sb.from('documento_catalogo')
+    .select('ordem').eq('bloco', bloco).order('ordem', { ascending: false }).limit(1).maybeSingle();
+  const ordem = (maiorOrdem?.ordem || 0) + 10;
+
+  const { error } = await sb.rpc('registrar_documento', {
+    p_chave: chave, p_bloco: bloco, p_rotulo: nome, p_multiplo: false, p_ordem: ordem
+  });
+  if (error) return mostrarAviso(aviso, 'Não foi possível criar: ' + error.message);
+
+  input.value = '';
+  if (typeof CATALOGO_DOCUMENTOS !== 'undefined') CATALOGO_DOCUMENTOS = null;
+  mostrarAviso(aviso, 'Documento criado.', 'ok');
+  registrarAuditoria('documento_catalogo', chave, 'INSERIR');
+  await carregarOrdemBlocos();
 }
 
 /* -------- Tema -------- */
